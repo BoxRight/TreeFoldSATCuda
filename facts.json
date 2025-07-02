@@ -1,0 +1,30 @@
+[
+  {
+    "key": "asset_1",
+    "variable_name": "EL_INMUEBLE_CUMPLE_CON_CONDICI_1",
+    "asset_name": "El ARRENDADOR acuerda arrendamiento al ARRENDATARIO",
+    "description": "acuerda arrendamiento",
+    "asset_id": 1,
+    "is_true": true,
+    "rows": 1,
+    "cols": 1,
+    "type": 0,
+    "data": [
+      1
+    ]
+  },
+  {
+    "key": "asset_1",
+    "variable_name": "AMBAS_PARTES_SON_MAYORES_DE_ED_2",
+    "asset_name": "El ARRENDADOR acuerda arrendamiento al ARRENDATARIO",
+    "description": "acuerda arrendamiento",
+    "asset_id": 1,
+    "is_true": true,
+    "rows": 1,
+    "cols": 1,
+    "type": 0,
+    "data": [
+      1
+    ]
+  }
+]

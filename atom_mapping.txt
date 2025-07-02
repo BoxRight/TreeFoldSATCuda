@@ -1,0 +1,10 @@
+4 El ARRENDATARIO causar daños significativos al inmueble al ARRENDADOR
+10 El ARRENDADOR retener depósito de garantía al ARRENDATARIO
+3 El ARRENDATARIO pagar la renta mensual completa al ARRENDADOR
+9 El ARRENDADOR iniciar proceso de desalojo al ARRENDATARIO
+2 El ARRENDADOR presentar un inmueble habitable al ARRENDATARIO
+8 El ARRENDATARIO rescindir el contrato al ARRENDADOR
+1 El ARRENDADOR acuerda arrendamiento al ARRENDATARIO
+7 El ARRENDADOR el inmueble requiera reparaciones estructurales al ARRENDATARIO
+6 El ARRENDADOR realizar dichas reparaciones al ARRENDATARIO
+5 El ARRENDADOR proporcionar un contrato detallado al ARRENDATARIO

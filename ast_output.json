@@ -1,0 +1,1132 @@
+{
+  "NodeType": "AST_DECLARATION",
+  "Level": 0,
+  "Type": {
+    "NodeType": "AST_TYPE",
+    "Level": 1,
+    "Type": "string"
+  },
+  "Identifier": {
+    "NodeType": "AST_IDENTIFIER",
+    "Level": 1,
+    "Identifier": "arrendamiento",
+    "IdentifierType": "TYPE_STRING"
+  },
+  "Expression": {
+    "NodeType": "AST_STRING",
+    "Level": 1,
+    "String": "acuerda arrendamiento"
+  },
+  "Next": {
+    "NodeType": "AST_DECLARATION",
+    "Level": 0,
+    "Type": {
+      "NodeType": "AST_TYPE",
+      "Level": 1,
+      "Type": "string"
+    },
+    "Identifier": {
+      "NodeType": "AST_IDENTIFIER",
+      "Level": 1,
+      "Identifier": "presentar",
+      "IdentifierType": "TYPE_STRING"
+    },
+    "Expression": {
+      "NodeType": "AST_STRING",
+      "Level": 1,
+      "String": "presentar un inmueble habitable"
+    },
+    "Next": {
+      "NodeType": "AST_DECLARATION",
+      "Level": 0,
+      "Type": {
+        "NodeType": "AST_TYPE",
+        "Level": 1,
+        "Type": "string"
+      },
+      "Identifier": {
+        "NodeType": "AST_IDENTIFIER",
+        "Level": 1,
+        "Identifier": "pagar",
+        "IdentifierType": "TYPE_STRING"
+      },
+      "Expression": {
+        "NodeType": "AST_STRING",
+        "Level": 1,
+        "String": "pagar la renta mensual completa"
+      },
+      "Next": {
+        "NodeType": "AST_DECLARATION",
+        "Level": 0,
+        "Type": {
+          "NodeType": "AST_TYPE",
+          "Level": 1,
+          "Type": "string"
+        },
+        "Identifier": {
+          "NodeType": "AST_IDENTIFIER",
+          "Level": 1,
+          "Identifier": "causar",
+          "IdentifierType": "TYPE_STRING"
+        },
+        "Expression": {
+          "NodeType": "AST_STRING",
+          "Level": 1,
+          "String": "causar daños significativos al inmueble"
+        },
+        "Next": {
+          "NodeType": "AST_DECLARATION",
+          "Level": 0,
+          "Type": {
+            "NodeType": "AST_TYPE",
+            "Level": 1,
+            "Type": "string"
+          },
+          "Identifier": {
+            "NodeType": "AST_IDENTIFIER",
+            "Level": 1,
+            "Identifier": "proporcionar",
+            "IdentifierType": "TYPE_STRING"
+          },
+          "Expression": {
+            "NodeType": "AST_STRING",
+            "Level": 1,
+            "String": "proporcionar un contrato detallado"
+          },
+          "Next": {
+            "NodeType": "AST_DECLARATION",
+            "Level": 0,
+            "Type": {
+              "NodeType": "AST_TYPE",
+              "Level": 1,
+              "Type": "string"
+            },
+            "Identifier": {
+              "NodeType": "AST_IDENTIFIER",
+              "Level": 1,
+              "Identifier": "realizar",
+              "IdentifierType": "TYPE_STRING"
+            },
+            "Expression": {
+              "NodeType": "AST_STRING",
+              "Level": 1,
+              "String": "realizar dichas reparaciones"
+            },
+            "Next": {
+              "NodeType": "AST_DECLARATION",
+              "Level": 0,
+              "Type": {
+                "NodeType": "AST_TYPE",
+                "Level": 1,
+                "Type": "subject"
+              },
+              "Identifier": {
+                "NodeType": "AST_IDENTIFIER",
+                "Level": 1,
+                "Identifier": "ARRENDADOR",
+                "IdentifierType": "TYPE_SUBJECT"
+              },
+              "Expression": {
+                "NodeType": "AST_SUBJECT_EXPRESSION",
+                "Level": 1,
+                "Description1": {
+                  "NodeType": "AST_STRING",
+                  "Level": 2,
+                  "String": "Placeholder arrendador"
+                },
+                "Description2": {
+                  "NodeType": "AST_STRING",
+                  "Level": 2,
+                  "String": "Placeholder address"
+                },
+                "Location": {
+                  "NodeType": "AST_STRING",
+                  "Level": 2,
+                  "String": "placeholderarrendador@example.com"
+                }
+              },
+              "Next": {
+                "NodeType": "AST_DECLARATION",
+                "Level": 0,
+                "Type": {
+                  "NodeType": "AST_TYPE",
+                  "Level": 1,
+                  "Type": "subject"
+                },
+                "Identifier": {
+                  "NodeType": "AST_IDENTIFIER",
+                  "Level": 1,
+                  "Identifier": "ARRENDATARIO",
+                  "IdentifierType": "TYPE_SUBJECT"
+                },
+                "Expression": {
+                  "NodeType": "AST_SUBJECT_EXPRESSION",
+                  "Level": 1,
+                  "Description1": {
+                    "NodeType": "AST_STRING",
+                    "Level": 2,
+                    "String": "Placeholder arrendatario"
+                  },
+                  "Description2": {
+                    "NodeType": "AST_STRING",
+                    "Level": 2,
+                    "String": "Placeholder address"
+                  },
+                  "Location": {
+                    "NodeType": "AST_STRING",
+                    "Level": 2,
+                    "String": "placeholderarrendatario@example.com"
+                  }
+                },
+                "Next": {
+                  "NodeType": "AST_DECLARATION",
+                  "Level": 0,
+                  "Type": {
+                    "NodeType": "AST_TYPE",
+                    "Level": 1,
+                    "Type": "asset"
+                  },
+                  "Identifier": {
+                    "NodeType": "AST_IDENTIFIER",
+                    "Level": 1,
+                    "Identifier": "Arrendamiento",
+                    "IdentifierType": "TYPE_ASSET"
+                  },
+                  "Expression": {
+                    "NodeType": "AST_ASSET_EXPRESSION",
+                    "Level": 1,
+                    "Type": {
+                      "NodeType": "AST_TYPE",
+                      "Level": 2,
+                      "Type": "Service"
+                    },
+                    "SubType": {
+                      "NodeType": "AST_TYPE",
+                      "Level": 2,
+                      "Type": "+"
+                    },
+                    "Subject1": {
+                      "NodeType": "AST_IDENTIFIER",
+                      "Level": 2,
+                      "Identifier": "ARRENDADOR",
+                      "IdentifierType": "TYPE_SUBJECT"
+                    },
+                    "Description": {
+                      "NodeType": "AST_IDENTIFIER",
+                      "Level": 2,
+                      "Identifier": "arrendamiento",
+                      "IdentifierType": "TYPE_STRING"
+                    },
+                    "Subject2": {
+                      "NodeType": "AST_IDENTIFIER",
+                      "Level": 2,
+                      "Identifier": "ARRENDATARIO",
+                      "IdentifierType": "TYPE_SUBJECT"
+                    }
+                  },
+                  "Next": {
+                    "NodeType": "AST_DECLARATION",
+                    "Level": 0,
+                    "Type": {
+                      "NodeType": "AST_TYPE",
+                      "Level": 1,
+                      "Type": "asset"
+                    },
+                    "Identifier": {
+                      "NodeType": "AST_IDENTIFIER",
+                      "Level": 1,
+                      "Identifier": "PresentarAsset1",
+                      "IdentifierType": "TYPE_ASSET"
+                    },
+                    "Expression": {
+                      "NodeType": "AST_ASSET_EXPRESSION",
+                      "Level": 1,
+                      "Type": {
+                        "NodeType": "AST_TYPE",
+                        "Level": 2,
+                        "Type": "Service"
+                      },
+                      "SubType": {
+                        "NodeType": "AST_TYPE",
+                        "Level": 2,
+                        "Type": "+"
+                      },
+                      "Subject1": {
+                        "NodeType": "AST_IDENTIFIER",
+                        "Level": 2,
+                        "Identifier": "ARRENDADOR",
+                        "IdentifierType": "TYPE_SUBJECT"
+                      },
+                      "Description": {
+                        "NodeType": "AST_IDENTIFIER",
+                        "Level": 2,
+                        "Identifier": "presentar",
+                        "IdentifierType": "TYPE_STRING"
+                      },
+                      "Subject2": {
+                        "NodeType": "AST_IDENTIFIER",
+                        "Level": 2,
+                        "Identifier": "ARRENDATARIO",
+                        "IdentifierType": "TYPE_SUBJECT"
+                      }
+                    },
+                    "Next": {
+                      "NodeType": "AST_DECLARATION",
+                      "Level": 0,
+                      "Type": {
+                        "NodeType": "AST_TYPE",
+                        "Level": 1,
+                        "Type": "clause"
+                      },
+                      "Identifier": {
+                        "NodeType": "AST_IDENTIFIER",
+                        "Level": 1,
+                        "Identifier": "norm1",
+                        "IdentifierType": "TYPE_CLAUSE"
+                      },
+                      "Expression": {
+                        "NodeType": "AST_CLAUSE_EXPRESSION",
+                        "Level": 1,
+                        "Condition": {
+                          "NodeType": "AST_CONDITION",
+                          "Level": 2,
+                          "Left": {
+                            "NodeType": "AST_IDENTIFIER",
+                            "Level": 3,
+                            "Identifier": "Arrendamiento",
+                            "IdentifierType": "TYPE_ASSET"
+                          }
+                        },
+                        "Consequence": {
+                          "NodeType": "AST_OB",
+                          "Level": 2,
+                          "Expression": {
+                            "NodeType": "AST_IDENTIFIER",
+                            "Level": 3,
+                            "Identifier": "PresentarAsset1",
+                            "IdentifierType": "TYPE_ASSET"
+                          }
+                        }
+                      },
+                      "Next": {
+                        "NodeType": "AST_DECLARATION",
+                        "Level": 0,
+                        "Type": {
+                          "NodeType": "AST_TYPE",
+                          "Level": 1,
+                          "Type": "asset"
+                        },
+                        "Identifier": {
+                          "NodeType": "AST_IDENTIFIER",
+                          "Level": 1,
+                          "Identifier": "PagarAsset2",
+                          "IdentifierType": "TYPE_ASSET"
+                        },
+                        "Expression": {
+                          "NodeType": "AST_ASSET_EXPRESSION",
+                          "Level": 1,
+                          "Type": {
+                            "NodeType": "AST_TYPE",
+                            "Level": 2,
+                            "Type": "Property"
+                          },
+                          "SubType": {
+                            "NodeType": "AST_TYPE",
+                            "Level": 2,
+                            "Type": "NM"
+                          },
+                          "Subject1": {
+                            "NodeType": "AST_IDENTIFIER",
+                            "Level": 2,
+                            "Identifier": "ARRENDATARIO",
+                            "IdentifierType": "TYPE_SUBJECT"
+                          },
+                          "Description": {
+                            "NodeType": "AST_IDENTIFIER",
+                            "Level": 2,
+                            "Identifier": "pagar",
+                            "IdentifierType": "TYPE_STRING"
+                          },
+                          "Subject2": {
+                            "NodeType": "AST_IDENTIFIER",
+                            "Level": 2,
+                            "Identifier": "ARRENDADOR",
+                            "IdentifierType": "TYPE_SUBJECT"
+                          }
+                        },
+                        "Next": {
+                          "NodeType": "AST_DECLARATION",
+                          "Level": 0,
+                          "Type": {
+                            "NodeType": "AST_TYPE",
+                            "Level": 1,
+                            "Type": "clause"
+                          },
+                          "Identifier": {
+                            "NodeType": "AST_IDENTIFIER",
+                            "Level": 1,
+                            "Identifier": "norm2",
+                            "IdentifierType": "TYPE_CLAUSE"
+                          },
+                          "Expression": {
+                            "NodeType": "AST_CLAUSE_EXPRESSION",
+                            "Level": 1,
+                            "Condition": {
+                              "NodeType": "AST_CONDITION",
+                              "Level": 2,
+                              "Left": {
+                                "NodeType": "AST_IDENTIFIER",
+                                "Level": 3,
+                                "Identifier": "Arrendamiento",
+                                "IdentifierType": "TYPE_ASSET"
+                              }
+                            },
+                            "Consequence": {
+                              "NodeType": "AST_OB",
+                              "Level": 2,
+                              "Expression": {
+                                "NodeType": "AST_IDENTIFIER",
+                                "Level": 3,
+                                "Identifier": "PagarAsset2",
+                                "IdentifierType": "TYPE_ASSET"
+                              }
+                            }
+                          },
+                          "Next": {
+                            "NodeType": "AST_DECLARATION",
+                            "Level": 0,
+                            "Type": {
+                              "NodeType": "AST_TYPE",
+                              "Level": 1,
+                              "Type": "asset"
+                            },
+                            "Identifier": {
+                              "NodeType": "AST_IDENTIFIER",
+                              "Level": 1,
+                              "Identifier": "CausarAsset3",
+                              "IdentifierType": "TYPE_ASSET"
+                            },
+                            "Expression": {
+                              "NodeType": "AST_ASSET_EXPRESSION",
+                              "Level": 1,
+                              "Type": {
+                                "NodeType": "AST_TYPE",
+                                "Level": 2,
+                                "Type": "Service"
+                              },
+                              "SubType": {
+                                "NodeType": "AST_TYPE",
+                                "Level": 2,
+                                "Type": "+"
+                              },
+                              "Subject1": {
+                                "NodeType": "AST_IDENTIFIER",
+                                "Level": 2,
+                                "Identifier": "ARRENDATARIO",
+                                "IdentifierType": "TYPE_SUBJECT"
+                              },
+                              "Description": {
+                                "NodeType": "AST_IDENTIFIER",
+                                "Level": 2,
+                                "Identifier": "causar",
+                                "IdentifierType": "TYPE_STRING"
+                              },
+                              "Subject2": {
+                                "NodeType": "AST_IDENTIFIER",
+                                "Level": 2,
+                                "Identifier": "ARRENDADOR",
+                                "IdentifierType": "TYPE_SUBJECT"
+                              }
+                            },
+                            "Next": {
+                              "NodeType": "AST_DECLARATION",
+                              "Level": 0,
+                              "Type": {
+                                "NodeType": "AST_TYPE",
+                                "Level": 1,
+                                "Type": "clause"
+                              },
+                              "Identifier": {
+                                "NodeType": "AST_IDENTIFIER",
+                                "Level": 1,
+                                "Identifier": "norm3",
+                                "IdentifierType": "TYPE_CLAUSE"
+                              },
+                              "Expression": {
+                                "NodeType": "AST_CLAUSE_EXPRESSION",
+                                "Level": 1,
+                                "Condition": {
+                                  "NodeType": "AST_CONDITION",
+                                  "Level": 2,
+                                  "Left": {
+                                    "NodeType": "AST_IDENTIFIER",
+                                    "Level": 3,
+                                    "Identifier": "Arrendamiento",
+                                    "IdentifierType": "TYPE_ASSET"
+                                  }
+                                },
+                                "Consequence": {
+                                  "NodeType": "AST_PR",
+                                  "Level": 2,
+                                  "Expression": {
+                                    "NodeType": "AST_IDENTIFIER",
+                                    "Level": 3,
+                                    "Identifier": "CausarAsset3",
+                                    "IdentifierType": "TYPE_ASSET"
+                                  }
+                                }
+                              },
+                              "Next": {
+                                "NodeType": "AST_DECLARATION",
+                                "Level": 0,
+                                "Type": {
+                                  "NodeType": "AST_TYPE",
+                                  "Level": 1,
+                                  "Type": "asset"
+                                },
+                                "Identifier": {
+                                  "NodeType": "AST_IDENTIFIER",
+                                  "Level": 1,
+                                  "Identifier": "ProporcionarAsset4",
+                                  "IdentifierType": "TYPE_ASSET"
+                                },
+                                "Expression": {
+                                  "NodeType": "AST_ASSET_EXPRESSION",
+                                  "Level": 1,
+                                  "Type": {
+                                    "NodeType": "AST_TYPE",
+                                    "Level": 2,
+                                    "Type": "Property"
+                                  },
+                                  "SubType": {
+                                    "NodeType": "AST_TYPE",
+                                    "Level": 2,
+                                    "Type": "NM"
+                                  },
+                                  "Subject1": {
+                                    "NodeType": "AST_IDENTIFIER",
+                                    "Level": 2,
+                                    "Identifier": "ARRENDADOR",
+                                    "IdentifierType": "TYPE_SUBJECT"
+                                  },
+                                  "Description": {
+                                    "NodeType": "AST_IDENTIFIER",
+                                    "Level": 2,
+                                    "Identifier": "proporcionar",
+                                    "IdentifierType": "TYPE_STRING"
+                                  },
+                                  "Subject2": {
+                                    "NodeType": "AST_IDENTIFIER",
+                                    "Level": 2,
+                                    "Identifier": "ARRENDATARIO",
+                                    "IdentifierType": "TYPE_SUBJECT"
+                                  }
+                                },
+                                "Next": {
+                                  "NodeType": "AST_DECLARATION",
+                                  "Level": 0,
+                                  "Type": {
+                                    "NodeType": "AST_TYPE",
+                                    "Level": 1,
+                                    "Type": "clause"
+                                  },
+                                  "Identifier": {
+                                    "NodeType": "AST_IDENTIFIER",
+                                    "Level": 1,
+                                    "Identifier": "norm4",
+                                    "IdentifierType": "TYPE_CLAUSE"
+                                  },
+                                  "Expression": {
+                                    "NodeType": "AST_CLAUSE_EXPRESSION",
+                                    "Level": 1,
+                                    "Condition": {
+                                      "NodeType": "AST_CONDITION",
+                                      "Level": 2,
+                                      "Left": {
+                                        "NodeType": "AST_IDENTIFIER",
+                                        "Level": 3,
+                                        "Identifier": "Arrendamiento",
+                                        "IdentifierType": "TYPE_ASSET"
+                                      }
+                                    },
+                                    "Consequence": {
+                                      "NodeType": "AST_OB",
+                                      "Level": 2,
+                                      "Expression": {
+                                        "NodeType": "AST_IDENTIFIER",
+                                        "Level": 3,
+                                        "Identifier": "ProporcionarAsset4",
+                                        "IdentifierType": "TYPE_ASSET"
+                                      }
+                                    }
+                                  },
+                                  "Next": {
+                                    "NodeType": "AST_DECLARATION",
+                                    "Level": 0,
+                                    "Type": {
+                                      "NodeType": "AST_TYPE",
+                                      "Level": 1,
+                                      "Type": "asset"
+                                    },
+                                    "Identifier": {
+                                      "NodeType": "AST_IDENTIFIER",
+                                      "Level": 1,
+                                      "Identifier": "RealizarAsset5",
+                                      "IdentifierType": "TYPE_ASSET"
+                                    },
+                                    "Expression": {
+                                      "NodeType": "AST_ASSET_EXPRESSION",
+                                      "Level": 1,
+                                      "Type": {
+                                        "NodeType": "AST_TYPE",
+                                        "Level": 2,
+                                        "Type": "Service"
+                                      },
+                                      "SubType": {
+                                        "NodeType": "AST_TYPE",
+                                        "Level": 2,
+                                        "Type": "+"
+                                      },
+                                      "Subject1": {
+                                        "NodeType": "AST_IDENTIFIER",
+                                        "Level": 2,
+                                        "Identifier": "ARRENDADOR",
+                                        "IdentifierType": "TYPE_SUBJECT"
+                                      },
+                                      "Description": {
+                                        "NodeType": "AST_IDENTIFIER",
+                                        "Level": 2,
+                                        "Identifier": "realizar",
+                                        "IdentifierType": "TYPE_STRING"
+                                      },
+                                      "Subject2": {
+                                        "NodeType": "AST_IDENTIFIER",
+                                        "Level": 2,
+                                        "Identifier": "ARRENDATARIO",
+                                        "IdentifierType": "TYPE_SUBJECT"
+                                      }
+                                    },
+                                    "Next": {
+                                      "NodeType": "AST_DECLARATION",
+                                      "Level": 0,
+                                      "Type": {
+                                        "NodeType": "AST_TYPE",
+                                        "Level": 1,
+                                        "Type": "string"
+                                      },
+                                      "Identifier": {
+                                        "NodeType": "AST_IDENTIFIER",
+                                        "Level": 1,
+                                        "Identifier": "condition5",
+                                        "IdentifierType": "TYPE_STRING"
+                                      },
+                                      "Expression": {
+                                        "NodeType": "AST_STRING",
+                                        "Level": 1,
+                                        "String": "el inmueble requiera reparaciones estructurales"
+                                      },
+                                      "Next": {
+                                        "NodeType": "AST_DECLARATION",
+                                        "Level": 0,
+                                        "Type": {
+                                          "NodeType": "AST_TYPE",
+                                          "Level": 1,
+                                          "Type": "asset"
+                                        },
+                                        "Identifier": {
+                                          "NodeType": "AST_IDENTIFIER",
+                                          "Level": 1,
+                                          "Identifier": "Condition5",
+                                          "IdentifierType": "TYPE_ASSET"
+                                        },
+                                        "Expression": {
+                                          "NodeType": "AST_ASSET_EXPRESSION",
+                                          "Level": 1,
+                                          "Type": {
+                                            "NodeType": "AST_TYPE",
+                                            "Level": 2,
+                                            "Type": "Service"
+                                          },
+                                          "SubType": {
+                                            "NodeType": "AST_TYPE",
+                                            "Level": 2,
+                                            "Type": "+"
+                                          },
+                                          "Subject1": {
+                                            "NodeType": "AST_IDENTIFIER",
+                                            "Level": 2,
+                                            "Identifier": "ARRENDADOR",
+                                            "IdentifierType": "TYPE_SUBJECT"
+                                          },
+                                          "Description": {
+                                            "NodeType": "AST_IDENTIFIER",
+                                            "Level": 2,
+                                            "Identifier": "condition5",
+                                            "IdentifierType": "TYPE_STRING"
+                                          },
+                                          "Subject2": {
+                                            "NodeType": "AST_IDENTIFIER",
+                                            "Level": 2,
+                                            "Identifier": "ARRENDATARIO",
+                                            "IdentifierType": "TYPE_SUBJECT"
+                                          }
+                                        },
+                                        "Next": {
+                                          "NodeType": "AST_DECLARATION",
+                                          "Level": 0,
+                                          "Type": {
+                                            "NodeType": "AST_TYPE",
+                                            "Level": 1,
+                                            "Type": "clause"
+                                          },
+                                          "Identifier": {
+                                            "NodeType": "AST_IDENTIFIER",
+                                            "Level": 1,
+                                            "Identifier": "norm5",
+                                            "IdentifierType": "TYPE_CLAUSE"
+                                          },
+                                          "Expression": {
+                                            "NodeType": "AST_CLAUSE_EXPRESSION",
+                                            "Level": 1,
+                                            "Condition": {
+                                              "NodeType": "AST_CONDITION",
+                                              "Level": 2,
+                                              "Left": {
+                                                "NodeType": "AST_IDENTIFIER",
+                                                "Level": 3,
+                                                "Identifier": "Arrendamiento",
+                                                "IdentifierType": "TYPE_ASSET"
+                                              }
+                                            },
+                                            "Consequence": {
+                                              "NodeType": "AST_OB",
+                                              "Level": 2,
+                                              "Expression": {
+                                                "NodeType": "AST_IDENTIFIER",
+                                                "Level": 3,
+                                                "Identifier": "RealizarAsset5",
+                                                "IdentifierType": "TYPE_ASSET"
+                                              }
+                                            }
+                                          },
+                                          "Next": {
+                                            "NodeType": "AST_DECLARATION",
+                                            "Level": 0,
+                                            "Type": {
+                                              "NodeType": "AST_TYPE",
+                                              "Level": 1,
+                                              "Type": "string"
+                                            },
+                                            "Identifier": {
+                                              "NodeType": "AST_IDENTIFIER",
+                                              "Level": 1,
+                                              "Identifier": "violation_string_1",
+                                              "IdentifierType": "TYPE_STRING"
+                                            },
+                                            "Expression": {
+                                              "NodeType": "AST_STRING",
+                                              "Level": 1,
+                                              "String": "rescindir el contrato"
+                                            },
+                                            "Next": {
+                                              "NodeType": "AST_DECLARATION",
+                                              "Level": 0,
+                                              "Type": {
+                                                "NodeType": "AST_TYPE",
+                                                "Level": 1,
+                                                "Type": "asset"
+                                              },
+                                              "Identifier": {
+                                                "NodeType": "AST_IDENTIFIER",
+                                                "Level": 1,
+                                                "Identifier": "RescindirConsequence1",
+                                                "IdentifierType": "TYPE_ASSET"
+                                              },
+                                              "Expression": {
+                                                "NodeType": "AST_ASSET_EXPRESSION",
+                                                "Level": 1,
+                                                "Type": {
+                                                  "NodeType": "AST_TYPE",
+                                                  "Level": 2,
+                                                  "Type": "Service"
+                                                },
+                                                "SubType": {
+                                                  "NodeType": "AST_TYPE",
+                                                  "Level": 2,
+                                                  "Type": "+"
+                                                },
+                                                "Subject1": {
+                                                  "NodeType": "AST_IDENTIFIER",
+                                                  "Level": 2,
+                                                  "Identifier": "ARRENDATARIO",
+                                                  "IdentifierType": "TYPE_SUBJECT"
+                                                },
+                                                "Description": {
+                                                  "NodeType": "AST_IDENTIFIER",
+                                                  "Level": 2,
+                                                  "Identifier": "violation_string_1",
+                                                  "IdentifierType": "TYPE_STRING"
+                                                },
+                                                "Subject2": {
+                                                  "NodeType": "AST_IDENTIFIER",
+                                                  "Level": 2,
+                                                  "Identifier": "ARRENDADOR",
+                                                  "IdentifierType": "TYPE_SUBJECT"
+                                                }
+                                              },
+                                              "Next": {
+                                                "NodeType": "AST_DECLARATION",
+                                                "Level": 0,
+                                                "Type": {
+                                                  "NodeType": "AST_TYPE",
+                                                  "Level": 1,
+                                                  "Type": "clause"
+                                                },
+                                                "Identifier": {
+                                                  "NodeType": "AST_IDENTIFIER",
+                                                  "Level": 1,
+                                                  "Identifier": "viol_clause_1",
+                                                  "IdentifierType": "TYPE_CLAUSE"
+                                                },
+                                                "Expression": {
+                                                  "NodeType": "AST_CLAUSE_EXPRESSION",
+                                                  "Level": 1,
+                                                  "Condition": {
+                                                    "NodeType": "AST_CONDITION",
+                                                    "Level": 2,
+                                                    "Left": {
+                                                      "NodeType": "AST_FLIP",
+                                                      "Level": 3,
+                                                      "Expression": {
+                                                        "NodeType": "AST_IDENTIFIER",
+                                                        "Level": 4,
+                                                        "Identifier": "PresentarAsset1",
+                                                        "IdentifierType": "TYPE_ASSET"
+                                                      }
+                                                    }
+                                                  },
+                                                  "Consequence": {
+                                                    "NodeType": "AST_CR",
+                                                    "Level": 2,
+                                                    "Expression": {
+                                                      "NodeType": "AST_IDENTIFIER",
+                                                      "Level": 3,
+                                                      "Identifier": "RescindirConsequence1",
+                                                      "IdentifierType": "TYPE_ASSET"
+                                                    }
+                                                  }
+                                                },
+                                                "Next": {
+                                                  "NodeType": "AST_DECLARATION",
+                                                  "Level": 0,
+                                                  "Type": {
+                                                    "NodeType": "AST_TYPE",
+                                                    "Level": 1,
+                                                    "Type": "string"
+                                                  },
+                                                  "Identifier": {
+                                                    "NodeType": "AST_IDENTIFIER",
+                                                    "Level": 1,
+                                                    "Identifier": "violation_string_2",
+                                                    "IdentifierType": "TYPE_STRING"
+                                                  },
+                                                  "Expression": {
+                                                    "NodeType": "AST_STRING",
+                                                    "Level": 1,
+                                                    "String": "iniciar proceso de desalojo"
+                                                  },
+                                                  "Next": {
+                                                    "NodeType": "AST_DECLARATION",
+                                                    "Level": 0,
+                                                    "Type": {
+                                                      "NodeType": "AST_TYPE",
+                                                      "Level": 1,
+                                                      "Type": "asset"
+                                                    },
+                                                    "Identifier": {
+                                                      "NodeType": "AST_IDENTIFIER",
+                                                      "Level": 1,
+                                                      "Identifier": "IniciarConsequence2",
+                                                      "IdentifierType": "TYPE_ASSET"
+                                                    },
+                                                    "Expression": {
+                                                      "NodeType": "AST_ASSET_EXPRESSION",
+                                                      "Level": 1,
+                                                      "Type": {
+                                                        "NodeType": "AST_TYPE",
+                                                        "Level": 2,
+                                                        "Type": "Service"
+                                                      },
+                                                      "SubType": {
+                                                        "NodeType": "AST_TYPE",
+                                                        "Level": 2,
+                                                        "Type": "+"
+                                                      },
+                                                      "Subject1": {
+                                                        "NodeType": "AST_IDENTIFIER",
+                                                        "Level": 2,
+                                                        "Identifier": "ARRENDADOR",
+                                                        "IdentifierType": "TYPE_SUBJECT"
+                                                      },
+                                                      "Description": {
+                                                        "NodeType": "AST_IDENTIFIER",
+                                                        "Level": 2,
+                                                        "Identifier": "violation_string_2",
+                                                        "IdentifierType": "TYPE_STRING"
+                                                      },
+                                                      "Subject2": {
+                                                        "NodeType": "AST_IDENTIFIER",
+                                                        "Level": 2,
+                                                        "Identifier": "ARRENDATARIO",
+                                                        "IdentifierType": "TYPE_SUBJECT"
+                                                      }
+                                                    },
+                                                    "Next": {
+                                                      "NodeType": "AST_DECLARATION",
+                                                      "Level": 0,
+                                                      "Type": {
+                                                        "NodeType": "AST_TYPE",
+                                                        "Level": 1,
+                                                        "Type": "clause"
+                                                      },
+                                                      "Identifier": {
+                                                        "NodeType": "AST_IDENTIFIER",
+                                                        "Level": 1,
+                                                        "Identifier": "viol_clause_2",
+                                                        "IdentifierType": "TYPE_CLAUSE"
+                                                      },
+                                                      "Expression": {
+                                                        "NodeType": "AST_CLAUSE_EXPRESSION",
+                                                        "Level": 1,
+                                                        "Condition": {
+                                                          "NodeType": "AST_CONDITION",
+                                                          "Level": 2,
+                                                          "Left": {
+                                                            "NodeType": "AST_FLIP",
+                                                            "Level": 3,
+                                                            "Expression": {
+                                                              "NodeType": "AST_IDENTIFIER",
+                                                              "Level": 4,
+                                                              "Identifier": "PagarAsset2",
+                                                              "IdentifierType": "TYPE_ASSET"
+                                                            }
+                                                          }
+                                                        },
+                                                        "Consequence": {
+                                                          "NodeType": "AST_CR",
+                                                          "Level": 2,
+                                                          "Expression": {
+                                                            "NodeType": "AST_IDENTIFIER",
+                                                            "Level": 3,
+                                                            "Identifier": "IniciarConsequence2",
+                                                            "IdentifierType": "TYPE_ASSET"
+                                                          }
+                                                        }
+                                                      },
+                                                      "Next": {
+                                                        "NodeType": "AST_DECLARATION",
+                                                        "Level": 0,
+                                                        "Type": {
+                                                          "NodeType": "AST_TYPE",
+                                                          "Level": 1,
+                                                          "Type": "string"
+                                                        },
+                                                        "Identifier": {
+                                                          "NodeType": "AST_IDENTIFIER",
+                                                          "Level": 1,
+                                                          "Identifier": "violation_string_3",
+                                                          "IdentifierType": "TYPE_STRING"
+                                                        },
+                                                        "Expression": {
+                                                          "NodeType": "AST_STRING",
+                                                          "Level": 1,
+                                                          "String": "retener depósito de garantía"
+                                                        },
+                                                        "Next": {
+                                                          "NodeType": "AST_DECLARATION",
+                                                          "Level": 0,
+                                                          "Type": {
+                                                            "NodeType": "AST_TYPE",
+                                                            "Level": 1,
+                                                            "Type": "asset"
+                                                          },
+                                                          "Identifier": {
+                                                            "NodeType": "AST_IDENTIFIER",
+                                                            "Level": 1,
+                                                            "Identifier": "RetenerConsequence3",
+                                                            "IdentifierType": "TYPE_ASSET"
+                                                          },
+                                                          "Expression": {
+                                                            "NodeType": "AST_ASSET_EXPRESSION",
+                                                            "Level": 1,
+                                                            "Type": {
+                                                              "NodeType": "AST_TYPE",
+                                                              "Level": 2,
+                                                              "Type": "Service"
+                                                            },
+                                                            "SubType": {
+                                                              "NodeType": "AST_TYPE",
+                                                              "Level": 2,
+                                                              "Type": "+"
+                                                            },
+                                                            "Subject1": {
+                                                              "NodeType": "AST_IDENTIFIER",
+                                                              "Level": 2,
+                                                              "Identifier": "ARRENDADOR",
+                                                              "IdentifierType": "TYPE_SUBJECT"
+                                                            },
+                                                            "Description": {
+                                                              "NodeType": "AST_IDENTIFIER",
+                                                              "Level": 2,
+                                                              "Identifier": "violation_string_3",
+                                                              "IdentifierType": "TYPE_STRING"
+                                                            },
+                                                            "Subject2": {
+                                                              "NodeType": "AST_IDENTIFIER",
+                                                              "Level": 2,
+                                                              "Identifier": "ARRENDATARIO",
+                                                              "IdentifierType": "TYPE_SUBJECT"
+                                                            }
+                                                          },
+                                                          "Next": {
+                                                            "NodeType": "AST_DECLARATION",
+                                                            "Level": 0,
+                                                            "Type": {
+                                                              "NodeType": "AST_TYPE",
+                                                              "Level": 1,
+                                                              "Type": "clause"
+                                                            },
+                                                            "Identifier": {
+                                                              "NodeType": "AST_IDENTIFIER",
+                                                              "Level": 1,
+                                                              "Identifier": "viol_clause_3",
+                                                              "IdentifierType": "TYPE_CLAUSE"
+                                                            },
+                                                            "Expression": {
+                                                              "NodeType": "AST_CLAUSE_EXPRESSION",
+                                                              "Level": 1,
+                                                              "Condition": {
+                                                                "NodeType": "AST_CONDITION",
+                                                                "Level": 2,
+                                                                "Left": {
+                                                                  "NodeType": "AST_FLIP",
+                                                                  "Level": 3,
+                                                                  "Expression": {
+                                                                    "NodeType": "AST_IDENTIFIER",
+                                                                    "Level": 4,
+                                                                    "Identifier": "CausarAsset3",
+                                                                    "IdentifierType": "TYPE_ASSET"
+                                                                  }
+                                                                }
+                                                              },
+                                                              "Consequence": {
+                                                                "NodeType": "AST_CR",
+                                                                "Level": 2,
+                                                                "Expression": {
+                                                                  "NodeType": "AST_IDENTIFIER",
+                                                                  "Level": 3,
+                                                                  "Identifier": "RetenerConsequence3",
+                                                                  "IdentifierType": "TYPE_ASSET"
+                                                                }
+                                                              }
+                                                            },
+                                                            "Next": {
+                                                              "NodeType": "AST_DECLARATION",
+                                                              "Level": 0,
+                                                              "Type": {
+                                                                "NodeType": "AST_TYPE",
+                                                                "Level": 1,
+                                                                "Type": "fact"
+                                                              },
+                                                              "Identifier": {
+                                                                "NodeType": "AST_IDENTIFIER",
+                                                                "Level": 1,
+                                                                "Identifier": "EL_INMUEBLE_CUMPLE_CON_CONDICI_1",
+                                                                "IdentifierType": "TYPE_FACT"
+                                                              },
+                                                              "Expression": {
+                                                                "NodeType": "AST_FACT_EXPRESSION",
+                                                                "Level": 1,
+                                                                "Expression": {
+                                                                  "NodeType": "AST_IDENTIFIER",
+                                                                  "Level": 2,
+                                                                  "Identifier": "Arrendamiento",
+                                                                  "IdentifierType": "TYPE_ASSET"
+                                                                },
+                                                                "Description": {
+                                                                  "NodeType": "AST_STRING",
+                                                                  "Level": 2,
+                                                                  "String": "el inmueble cumple con condiciones de habitabilidad"
+                                                                },
+                                                                "Proof": {
+                                                                  "NodeType": "AST_STRING",
+                                                                  "Level": 2,
+                                                                  "String": "certificado de inspección municipal"
+                                                                }
+                                                              },
+                                                              "Next": {
+                                                                "NodeType": "AST_DECLARATION",
+                                                                "Level": 0,
+                                                                "Type": {
+                                                                  "NodeType": "AST_TYPE",
+                                                                  "Level": 1,
+                                                                  "Type": "fact"
+                                                                },
+                                                                "Identifier": {
+                                                                  "NodeType": "AST_IDENTIFIER",
+                                                                  "Level": 1,
+                                                                  "Identifier": "AMBAS_PARTES_SON_MAYORES_DE_ED_2",
+                                                                  "IdentifierType": "TYPE_FACT"
+                                                                },
+                                                                "Expression": {
+                                                                  "NodeType": "AST_FACT_EXPRESSION",
+                                                                  "Level": 1,
+                                                                  "Expression": {
+                                                                    "NodeType": "AST_IDENTIFIER",
+                                                                    "Level": 2,
+                                                                    "Identifier": "Arrendamiento",
+                                                                    "IdentifierType": "TYPE_ASSET"
+                                                                  },
+                                                                  "Description": {
+                                                                    "NodeType": "AST_STRING",
+                                                                    "Level": 2,
+                                                                    "String": "ambas partes son mayores de edad y legalmente competentes"
+                                                                  },
+                                                                  "Proof": {
+                                                                    "NodeType": "AST_STRING",
+                                                                    "Level": 2,
+                                                                    "String": "documentos de identificación oficial"
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

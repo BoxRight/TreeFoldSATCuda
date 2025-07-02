@@ -1,0 +1,45 @@
+// String definitions for actions
+string arrendamiento = "acuerda arrendamiento";
+string presentar = "presentar un inmueble habitable";
+string pagar = "pagar la renta mensual completa";
+string causar = "causar daños significativos al inmueble";
+string proporcionar = "proporcionar un contrato detallado";
+string realizar = "realizar dichas reparaciones";
+
+// Subject declarations
+subject ARRENDADOR = "Placeholder arrendador", "Placeholder address", 12345678, "placeholderarrendador@example.com";
+subject ARRENDATARIO = "Placeholder arrendatario", "Placeholder address", 12345678, "placeholderarrendatario@example.com";
+
+// Base contract asset
+asset Arrendamiento = Service, +, ARRENDADOR, arrendamiento, ARRENDATARIO;
+
+// Norm assets
+asset PresentarAsset1 = Service, +, ARRENDADOR, presentar, ARRENDATARIO;
+clause norm1 = { Arrendamiento, OB(PresentarAsset1) };
+asset PagarAsset2 = Property, NM, ARRENDATARIO, pagar, ARRENDADOR;
+clause norm2 = { Arrendamiento, OB(PagarAsset2) };
+asset CausarAsset3 = Service, +, ARRENDATARIO, causar, ARRENDADOR;
+clause norm3 = { Arrendamiento, PR(CausarAsset3) };
+asset ProporcionarAsset4 = Property, NM, ARRENDADOR, proporcionar, ARRENDATARIO;
+clause norm4 = { Arrendamiento, OB(ProporcionarAsset4) };
+asset RealizarAsset5 = Service, +, ARRENDADOR, realizar, ARRENDATARIO;
+// Conditional norm
+string condition5 = "el inmueble requiera reparaciones estructurales";
+asset Condition5 = Service, +, ARRENDADOR, condition5, ARRENDATARIO;
+clause norm5 = { Arrendamiento AND Condition5, OB(RealizarAsset5) };
+
+// Violation clauses
+string violation_string_1 = "rescindir el contrato";
+asset RescindirConsequence1 = Service, +, ARRENDATARIO, violation_string_1, ARRENDADOR;
+clause viol_clause_1 = { not(PresentarAsset1), CR(RescindirConsequence1) };
+string violation_string_2 = "iniciar proceso de desalojo";
+asset IniciarConsequence2 = Service, +, ARRENDADOR, violation_string_2, ARRENDATARIO;
+clause viol_clause_2 = { not(PagarAsset2), CR(IniciarConsequence2) };
+string violation_string_3 = "retener depósito de garantía";
+asset RetenerConsequence3 = Service, +, ARRENDADOR, violation_string_3, ARRENDATARIO;
+clause viol_clause_3 = { not(CausarAsset3), CR(RetenerConsequence3) };
+
+// Facts
+fact EL_INMUEBLE_CUMPLE_CON_CONDICI_1 = Arrendamiento, "el inmueble cumple con condiciones de habitabilidad", "certificado de inspección municipal";
+fact AMBAS_PARTES_SON_MAYORES_DE_ED_2 = Arrendamiento, "ambas partes son mayores de edad y legalmente competentes", "documentos de identificación oficial";
+
