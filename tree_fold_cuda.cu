@@ -19,6 +19,8 @@
 #include <map>
 #include <cctype>
 #include <sstream>
+#include <cassert>
+#include <cstdint>
 
 // Error checking macro
 #define CHECK_CUDA_ERROR(call) { \
@@ -337,6 +339,7 @@ void copyHostToDevice(const HostSet& hostSet, CudaSet* cudaSet) {
     // Convert to int8_t for device storage
     std::vector<int8_t> hostData(hostIntData.size());
     for (size_t i = 0; i < hostIntData.size(); ++i) {
+        assert(hostIntData[i] >= INT8_MIN && hostIntData[i] <= INT8_MAX && "Input data exceeds int8_t range!");
         hostData[i] = static_cast<int8_t>(hostIntData[i]);
     }
 
@@ -452,13 +455,7 @@ __device__ bool deviceContains(const int* array, int size, int value) {
     return false;
 }
 
-__global__ void gatherIndicesKernel(int* uniqueIndices, int* indices, int* uniqueVectorIndices, int count) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < count) {
-        int pos = uniqueIndices[idx];
-        uniqueVectorIndices[idx] = indices[pos];
-    }
-}
+
 
 
 // Kernel to convert vector elements to unique elements (for Level 1 carry-over)
@@ -569,101 +566,7 @@ __global__ void processAllCombinationsKernel(
 
 
 
-// Mark duplicates kernel - optimized for memory access
-__global__ void markDuplicatesKernel(int* indices, int* data, int* lengths, int* isUnique, int size, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx == 0 || idx >= size) return;
-    
-    int curr = indices[idx];
-    int prev = indices[idx - 1];
-    
-    int lenCurr = lengths[curr];
-    int lenPrev = lengths[prev];
-    
-    // Quick length check (if different, definitely unique)
-    if (lenCurr != lenPrev) {
-        return;
-    }
-    
-    // Pointers to the vectors
-    int* currData = data + curr * maxLen;
-    int* prevData = data + prev * maxLen;
-    
-    // Compare elements
-    bool identical = true;
-    for (int i = 0; i < lenCurr; i++) {
-        if (currData[i] != prevData[i]) {
-            identical = false;
-            break;
-        }
-    }
-    
-    if (identical) {
-        isUnique[idx] = 0;
-    }
-}
 
-// Kernel to sort all vectors in parallel
-// Each thread block sorts multiple vectors simultaneously
-__global__ void sortAllVectorsKernel(int* data, int* lengths, int numVectors, int maxLen) {
-    extern __shared__ int sharedMem[];
-    
-    // Determine which vectors this block processes
-    int vectorsPerBlock = blockDim.x;
-    int baseVectorIdx = blockIdx.x * vectorsPerBlock;
-    
-    // Local thread ID within the block
-    int localIdx = threadIdx.x;
-    
-    // Check if this block has any vectors to process
-    if (baseVectorIdx >= numVectors) {
-        return;
-    }
-    
-    // Calculate the vector index this thread works on
-    int vectorIdx = baseVectorIdx + localIdx;
-    
-    // Check if this thread has a valid vector
-    if (vectorIdx < numVectors) {
-        // Get vector length
-        int len = lengths[vectorIdx];
-        
-        // Local pointer to this vector's data
-        int* vecData = data + vectorIdx * maxLen;
-        
-        // Sort the vector (using bitonic sort for maximum parallelism)
-        for (int k = 2; k <= len; k *= 2) {
-            for (int j = k / 2; j > 0; j /= 2) {
-                for (int i = localIdx; i < len; i += blockDim.x) {
-                    int ixj = i ^ j;
-                    
-                    if (ixj > i && ixj < len) {
-                        if ((i & k) == 0) {
-                            // Ascending
-                            if (vecData[i] > vecData[ixj]) {
-                                // Swap
-                                int temp = vecData[i];
-                                vecData[i] = vecData[ixj];
-                                vecData[ixj] = temp;
-                            }
-                        } else {
-                            // Descending
-                            if (vecData[i] < vecData[ixj]) {
-                                // Swap
-                                int temp = vecData[i];
-                                vecData[i] = vecData[ixj];
-                                vecData[ixj] = temp;
-                            }
-                        }
-                    }
-                    
-                    // Synchronize threads in the block
-                    __syncthreads();
-                }
-            }
-        }
-    }
-}
 //-------------------------------------------------------------------------
 // Core processing functions that match Python exactly
 //-------------------------------------------------------------------------
@@ -813,235 +716,6 @@ CudaSet processPairCPU(const CudaSet& setA, const CudaSet& setB, int threshold, 
     return resultCudaSet;
 }
 
-// GPU deduplication alternative implementation using functors
-// Vector comparison functor for thrust::sort
-struct VectorCompare {
-    const int* data;
-    const int* lengths;
-    int maxLen;
-    
-    VectorCompare(const int* d, const int* l, int max) : data(d), lengths(l), maxLen(max) {}
-    
-    __host__ __device__
-    bool operator()(int i, int j) const {
-        int lenI = lengths[i];
-        int lenJ = lengths[j];
-        
-        // First compare lengths
-        if (lenI != lenJ) {
-            return lenI < lenJ;
-        }
-        
-        // If lengths are equal, compare elements
-        for (int k = 0; k < lenI; k++) {
-            int valI = data[i * maxLen + k];
-            int valJ = data[j * maxLen + k];
-            if (valI != valJ) {
-                return valI < valJ;
-            }
-        }
-        
-        return false; // Equal vectors
-    }
-};
-
-
-// Maximally concurrent deduplication
-std::vector<std::vector<int>> deduplicateCombinations(
-    const std::vector<std::vector<int>>& combinations, bool verbose) {
-    
-    if (combinations.size() <= 1) return combinations;
-    
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
-    
-    //if (verbose) {
-    //    printf("      Deduplicating %zu combinations with maximum concurrency...\n", combinations.size());
-    //}
-    
-    // Find maximum vector length
-    size_t maxLen = 0;
-    for (const auto& vec : combinations) {
-        maxLen = std::max(maxLen, vec.size());
-    }
-    
-    // PHASE 1: Prepare data with maximum parallelism
-    // Create device vectors
-    thrust::device_vector<int> d_flatData(combinations.size() * maxLen);
-    thrust::device_vector<int> d_lengths(combinations.size());
-    thrust::device_vector<int> d_indices(combinations.size());
-    
-    // Determine optimal thread and block configuration
-    int maxThreadsPerBlock = 1024;  // Maximum threads per block for most GPUs
-    int vectorsPerBlock = 32;      // Process multiple vectors per block for better occupancy
-    int elementsPerThread = 4;     // Process multiple elements per thread for better efficiency
-    
-    dim3 blockSize(maxThreadsPerBlock / vectorsPerBlock);
-    dim3 gridSize((combinations.size() + vectorsPerBlock - 1) / vectorsPerBlock);
-    
-    // Fill device vectors with pinned memory for faster transfers
-    int* h_flatData;
-    int* h_lengths;
-    cudaHostAlloc(&h_flatData, combinations.size() * maxLen * sizeof(int), cudaHostAllocDefault);
-    cudaHostAlloc(&h_lengths, combinations.size() * sizeof(int), cudaHostAllocDefault);
-    
-    // Fill host pinned memory
-    #pragma omp parallel for
-    for (size_t i = 0; i < combinations.size(); i++) {
-        h_lengths[i] = combinations[i].size();
-        
-        // Copy data
-        for (size_t j = 0; j < combinations[i].size(); j++) {
-            h_flatData[i * maxLen + j] = combinations[i][j];
-        }
-        
-        // Pad with INT_MIN
-        for (size_t j = combinations[i].size(); j < maxLen; j++) {
-            h_flatData[i * maxLen + j] = INT_MIN;
-        }
-    }
-    
-    // Copy to device (overlap with sequence generation)
-    cudaStream_t streams[2];
-    cudaStreamCreate(&streams[0]);
-    cudaStreamCreate(&streams[1]);
-    
-    // Copy data in stream 0
-    cudaMemcpyAsync(thrust::raw_pointer_cast(d_flatData.data()), h_flatData,
-                  combinations.size() * maxLen * sizeof(int),
-                  cudaMemcpyHostToDevice, streams[0]);
-    cudaMemcpyAsync(thrust::raw_pointer_cast(d_lengths.data()), h_lengths,
-                  combinations.size() * sizeof(int),
-                  cudaMemcpyHostToDevice, streams[0]);
-    
-    // Generate sequence in stream 1
-    thrust::sequence(thrust::cuda::par.on(streams[1]), d_indices.begin(), d_indices.end());
-    
-    // PHASE 2: Sort each vector with maximum parallelism
-    // Launch massively parallel kernel to sort all vectors simultaneously
-    sortAllVectorsKernel<<<gridSize, blockSize, 0, streams[0]>>>(
-        thrust::raw_pointer_cast(d_flatData.data()),
-        thrust::raw_pointer_cast(d_lengths.data()),
-        combinations.size(),
-        maxLen);
-    
-    // Wait for all operations to complete
-    cudaStreamSynchronize(streams[0]);
-    cudaStreamSynchronize(streams[1]);
-    
-    // PHASE 3: Global sort with high-performance parallel algorithm
-    // Use key-value sorting with vectors as keys
-    thrust::sort(thrust::cuda::par,
-               d_indices.begin(), d_indices.end(),
-               VectorCompare(thrust::raw_pointer_cast(d_flatData.data()),
-                            thrust::raw_pointer_cast(d_lengths.data()),
-                            maxLen));
-    
-    // PHASE 4: Mark duplicates with parallel scan
-    thrust::device_vector<int> d_isUnique(combinations.size(), 1);
-    
-    // Mark duplicates in parallel
-    markDuplicatesKernel<<<gridSize, blockSize>>>(
-        thrust::raw_pointer_cast(d_indices.data()),
-        thrust::raw_pointer_cast(d_flatData.data()),
-        thrust::raw_pointer_cast(d_lengths.data()),
-        thrust::raw_pointer_cast(d_isUnique.data()),
-        combinations.size(),
-        maxLen);
-    
-    // PHASE 5: Count and gather unique vectors with parallel primitives
-    int uniqueCount = thrust::reduce(thrust::cuda::par, d_isUnique.begin(), d_isUnique.end());
-    
-    //if (verbose) {
-    //    float reduction = 100.0f * (1.0f - (float)uniqueCount / combinations.size());
-    //    printf("      Found %d unique combinations out of %zu (%.1f%% reduction)\n", 
-    //           uniqueCount, combinations.size(), reduction);
-    //}
-    
-    // Early return for no duplicates
-    if (uniqueCount == combinations.size()) {
-        cudaFreeHost(h_flatData);
-        cudaFreeHost(h_lengths);
-        cudaStreamDestroy(streams[0]);
-        cudaStreamDestroy(streams[1]);
-        
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-        float milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, start, stop);
-        
-        //if (verbose) {
-        //    printf("      Parallel deduplication completed in %.2f ms\n", milliseconds);
-        //}
-        
-        cudaEventDestroy(start);
-        cudaEventDestroy(stop);
-        
-        return combinations;
-    }
-    
-    // Create a vector of unique indices using stream compaction
-    thrust::device_vector<int> d_uniqueIndices(uniqueCount);
-    thrust::copy_if(thrust::cuda::par,
-                  thrust::make_counting_iterator<int>(0),
-                  thrust::make_counting_iterator<int>((int)combinations.size()),
-                  d_isUnique.begin(),
-                  d_uniqueIndices.begin(),
-                  thrust::identity<int>());
-    
-    // Gather the indices of unique vectors
-
-thrust::device_vector<int> d_uniqueVectorIndices(uniqueCount);
-gatherIndicesKernel<<<(uniqueCount + 255) / 256, 256>>>(
-    thrust::raw_pointer_cast(d_uniqueIndices.data()),
-    thrust::raw_pointer_cast(d_indices.data()),
-    thrust::raw_pointer_cast(d_uniqueVectorIndices.data()),
-    uniqueCount);
-    
-    // PHASE 6: Construct result with parallel operations
-    // Copy results back to host
-    thrust::host_vector<int> h_uniqueVectorIndices = d_uniqueVectorIndices;
-    
-    // Prepare result vectors
-    std::vector<std::vector<int>> result(uniqueCount);
-    
-    // Construct result vectors in parallel
-    #pragma omp parallel for
-    for (int i = 0; i < uniqueCount; i++) {
-        int idx = h_uniqueVectorIndices[i];
-        int len = h_lengths[idx];
-        
-        result[i].reserve(len);
-        for (int j = 0; j < len; j++) {
-            int val = h_flatData[idx * maxLen + j];
-            if (val != INT_MIN) {
-                result[i].push_back(val);
-            }
-        }
-    }
-    
-    // Clean up
-    cudaFreeHost(h_flatData);
-    cudaFreeHost(h_lengths);
-    cudaStreamDestroy(streams[0]);
-    cudaStreamDestroy(streams[1]);
-    
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    
-    //if (verbose) {
-    //    printf("      Massively parallel deduplication completed in %.2f ms\n", milliseconds);
-    //}
-    
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-    
-    return result;
-}
 
 
 // Helper function to extract a subset from a CudaSet
