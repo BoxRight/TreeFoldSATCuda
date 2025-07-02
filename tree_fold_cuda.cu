@@ -460,61 +460,6 @@ __global__ void gatherIndicesKernel(int* uniqueIndices, int* indices, int* uniqu
     }
 }
 
-// Kernel for processing combinations in parallel
-__global__ void processCombinationsKernel(
-    int8_t* dataA, int* offsetsA, int* sizesA, int numItemsA,
-    int8_t* dataB, int* offsetsB, int* sizesB, int numItemsB,
-    int threshold, int level,
-    int* resultData, int* resultSizes, int* validFlags, int maxResultSize
-) {
-    int idxA = blockIdx.x * blockDim.x + threadIdx.x;
-    int idxB = blockIdx.y * blockDim.y + threadIdx.y;
-    
-    if (idxA >= numItemsA || idxB >= numItemsB) {
-        return;
-    }
-    
-    int combinationIdx = idxA * numItemsB + idxB;
-    
-    // Get vectors from set A and set B
-    int offsetA = offsetsA[idxA];
-    int sizeA = sizesA[idxA];
-    int offsetB = offsetsB[idxB];
-    int sizeB = sizesB[idxB];
-    
-    // Local working memory for unique elements
-    int localSet[MAX_ELEMENTS_PER_VECTOR * 2];
-    int localSetSize = 0;
-    
-    // Merge vectors, keeping only unique elements
-    for (int i = 0; i < sizeA; i++) {
-        int val = dataA[offsetA + i];
-        if (!deviceContains(localSet, localSetSize, val)) {
-            localSet[localSetSize++] = val;
-        }
-    }
-    
-    for (int i = 0; i < sizeB; i++) {
-        int val = dataB[offsetB + i];
-        if (!deviceContains(localSet, localSetSize, val)) {
-            localSet[localSetSize++] = val;
-        }
-    }
-    
-    // Check threshold condition
-    bool isValid = (threshold == 0 || localSetSize <= threshold);
-    
-    // If valid, copy result to output buffer
-    if (isValid) {
-        validFlags[combinationIdx] = 1;
-        resultSizes[combinationIdx] = localSetSize;
-        
-        int resultOffset = combinationIdx * maxResultSize;
-        for (int i = 0; i < localSetSize; i++) {
-            resultData[resultOffset + i] = localSet[i];
-        }
-    }
-}
 
 // Kernel to convert vector elements to unique elements (for Level 1 carry-over)
 __global__ void convertToUniqueKernel(
@@ -550,68 +495,6 @@ __global__ void convertToUniqueKernel(
     }
 }
 
-__global__ void processBatchKernel(
-    int8_t* dataA, int* offsetsA, int* sizesA, int numItemsA, int batchStartA, int batchItemsA,
-    int8_t* dataB, int* offsetsB, int* sizesB, int numItemsB, int batchStartB, int batchItemsB,
-    int threshold, int level,
-    int* resultData, int* resultSizes, int* validFlags, int maxResultSize
-) {
-    int localIdxA = blockIdx.x * blockDim.x + threadIdx.x;
-    int localIdxB = blockIdx.y * blockDim.y + threadIdx.y;
-    
-    if (localIdxA >= batchItemsA || localIdxB >= batchItemsB) {
-        return;
-    }
-    
-    // Map to global indices
-    int idxA = batchStartA + localIdxA;
-    int idxB = batchStartB + localIdxB;
-    
-    // Local combination index in this batch
-    int combinationIdx = localIdxA * batchItemsB + localIdxB;
-    
-    // Get vectors from set A and set B
-    int offsetA = offsetsA[idxA];
-    int sizeA = sizesA[idxA];
-    int offsetB = offsetsB[idxB];
-    int sizeB = sizesB[idxB];
-    
-    // Local working memory for unique elements
-    int localSet[MAX_ELEMENTS_PER_VECTOR * 2];
-    int localSetSize = 0;
-    
-    // Merge vectors, keeping only unique elements
-    for (int i = 0; i < sizeA; i++) {
-        int val = dataA[offsetA + i];
-        if (!deviceContains(localSet, localSetSize, val)) {
-            localSet[localSetSize++] = val;
-        }
-    }
-    
-    for (int i = 0; i < sizeB; i++) {
-        int val = dataB[offsetB + i];
-        if (!deviceContains(localSet, localSetSize, val)) {
-            localSet[localSetSize++] = val;
-        }
-    }
-    
-    // Check threshold condition - only compare element count to threshold
-    bool isValid = (threshold == 0 || localSetSize <= threshold);
-    
-    // If valid, copy result to output buffer
-    if (isValid) {
-        validFlags[combinationIdx] = 1;
-        resultSizes[combinationIdx] = localSetSize;
-        
-        int resultOffset = combinationIdx * maxResultSize;
-        for (int i = 0; i < localSetSize; i++) {
-            resultData[resultOffset + i] = localSet[i];
-        }
-    } else {
-        // Even if not valid, store the size for debugging
-        resultSizes[combinationIdx] = localSetSize;
-    }
-}
 
 // Kernel that processes all combinations with built-in batching
 __global__ void processAllCombinationsKernel(
@@ -682,32 +565,6 @@ __global__ void processAllCombinationsKernel(
     }
 }
 
-// Efficient kernel for sorting vectors
-__global__ void sortVectorsKernel(int* data, int* lengths, int numVectors, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= numVectors) return;
-    
-    int* vecStart = data + idx * maxLen;
-    int len = lengths[idx];
-    
-    // Simple insertion sort - efficient for small to medium vectors
-    for (int i = 1; i < len; i++) {
-        int key = vecStart[i];
-        int j = i - 1;
-        
-        while (j >= 0 && vecStart[j] > key) {
-            vecStart[j + 1] = vecStart[j];
-            j--;
-        }
-        
-        vecStart[j + 1] = key;
-    }
-    
-    // Ensure padding values are INT_MIN
-    for (int i = len; i < maxLen; i++) {
-        vecStart[i] = INT_MIN;
-    }
-}
 
 // Kernel to mark unique vectors (more efficient than previous version)
 __global__ void markUniqueKernel(int* indices, int* data, int* lengths, int* isUnique, 
