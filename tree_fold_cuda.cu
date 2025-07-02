@@ -566,139 +566,8 @@ __global__ void processAllCombinationsKernel(
 }
 
 
-// Kernel to mark unique vectors (more efficient than previous version)
-__global__ void markUniqueKernel(int* indices, int* data, int* lengths, int* isUnique, 
-                               int numVectors, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx == 0 || idx >= numVectors) return;
-    
-    int curr = indices[idx];
-    int prev = indices[idx - 1];
-    
-    int lenCurr = lengths[curr];
-    int lenPrev = lengths[prev];
-    
-    // If lengths differ, this is a unique vector
-    if (lenCurr != lenPrev) {
-        return;
-    }
-    
-    // Compare vectors
-    int* currData = data + curr * maxLen;
-    int* prevData = data + prev * maxLen;
-    
-    // Fast comparison
-    bool identical = true;
-    for (int i = 0; i < lenCurr; i++) {
-        if (currData[i] != prevData[i]) {
-            identical = false;
-            break;
-        }
-    }
-    
-    // If identical, mark as duplicate
-    if (identical) {
-        isUnique[idx] = 0;
-    }
-}
 
-// Kernel to compute hash values for each vector
-__global__ void computeVectorHashesKernel(int* data, int* lengths, uint64_t* hashes, int numVectors, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= numVectors) return;
-    
-    int* vecStart = data + idx * maxLen;
-    int len = lengths[idx];
-    
-    // FNV-1a hash (very fast and good for integers)
-    uint64_t hash = 14695981039346656037ULL; // FNV offset basis
-    
-    // Hash length first
-    hash ^= len;
-    hash *= 1099511628211ULL; // FNV prime
-    
-    // Hash each element
-    for (int i = 0; i < len; i++) {
-        hash ^= vecStart[i];
-        hash *= 1099511628211ULL;
-    }
-    
-    hashes[idx] = hash;
-}
 
-// Kernel to mark duplicates in parallel
-__global__ void markDuplicatesKernel(int* indices, int* data, int* lengths, uint64_t* hashes, 
-                                   int* isUnique, int numVectors, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx == 0 || idx >= numVectors) return; // First item always unique, skip if out of bounds
-    
-    int curr = indices[idx];
-    int prev = indices[idx - 1];
-    
-    // Quick check: if hashes differ, this is a unique item
-    if (hashes[curr] != hashes[prev]) {
-        return; // Different hashes, must be unique
-    }
-    
-    // Hashes match, need to check the actual vectors
-    int lenCurr = lengths[curr];
-    int lenPrev = lengths[prev];
-    
-    // If lengths differ, this is a unique item
-    if (lenCurr != lenPrev) {
-        return;
-    }
-    
-    // Check all elements
-    int* currData = data + curr * maxLen;
-    int* prevData = data + prev * maxLen;
-    
-    bool identical = true;
-    for (int i = 0; i < lenCurr; i++) {
-        if (currData[i] != prevData[i]) {
-            identical = false;
-            break;
-        }
-    }
-    
-    // If identical, mark as duplicate
-    if (identical) {
-        isUnique[idx] = 0;
-    }
-}
-
-// Initialize arrays kernel
-__global__ void initializeArraysKernel(int* indices, int* isUnique, int size) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < size) {
-        indices[idx] = idx;
-        isUnique[idx] = 1;
-    }
-}
-
-// Generate sort keys for small vectors (≤8 elements)
-__global__ void generateSortKeysKernel(int* data, int* lengths, uint64_t* keys, int size, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= size) return;
-    
-    int* vec = data + idx * maxLen;
-    int len = lengths[idx];
-    
-    // Create a 64-bit key
-    uint64_t key = 0;
-    
-    // First encode the length (in top 8 bits)
-    key = (uint64_t)len << 56;
-    
-    // Then encode elements (in lower bits)
-    for (int i = 0; i < len && i < 7; i++) {
-        // Scale to positive and pack into 8 bits
-        unsigned int val = (vec[i] + 0x7FFFFFFF) & 0xFF;
-        key |= ((uint64_t)val << (8 * (6 - i)));
-    }
-    
-    keys[idx] = key;
-}
 
 // Mark duplicates kernel - optimized for memory access
 __global__ void markDuplicatesKernel(int* indices, int* data, int* lengths, int* isUnique, int size, int maxLen) {
@@ -731,17 +600,6 @@ __global__ void markDuplicatesKernel(int* indices, int* data, int* lengths, int*
     
     if (identical) {
         isUnique[idx] = 0;
-    }
-}
-
-// Gather unique indices using prefix sum
-__global__ void gatherUniqueIndicesKernel(int* indices, int* isUnique, int* prefixSum, int* uniqueIndices, int size) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= size) return;
-    
-    if (isUnique[idx] == 1) {
-        int destIdx = prefixSum[idx] - 1; // Adjust for 0-based indexing
-        uniqueIndices[destIdx] = indices[idx];
     }
 }
 
@@ -987,44 +845,6 @@ struct VectorCompare {
     }
 };
 
-struct MarkDuplicates {
-    const int* indices;
-    const int* data;
-    const int* lengths;
-    int* isUnique;
-    int maxLen;
-    
-    MarkDuplicates(const int* idx, const int* d, const int* l, int* u, int max) 
-        : indices(idx), data(d), lengths(l), isUnique(u), maxLen(max) {}
-    
-    __host__ __device__
-    void operator()(int idx) {
-        if (idx == 0) return; // First item is always unique
-        
-        int curr = indices[idx];
-        int prev = indices[idx - 1];
-        
-        int lenCurr = lengths[curr];
-        int lenPrev = lengths[prev];
-        
-        // If lengths differ, this is a unique item
-        if (lenCurr != lenPrev) return;
-        
-        // Check if all elements match
-        bool identical = true;
-        for (int k = 0; k < lenCurr; k++) {
-            if (data[curr * maxLen + k] != data[prev * maxLen + k]) {
-                identical = false;
-                break;
-            }
-        }
-        
-        // If identical, mark as non-unique
-        if (identical) {
-            isUnique[idx] = 0;
-        }
-    }
-};
 
 // Maximally concurrent deduplication
 std::vector<std::vector<int>> deduplicateCombinations(
@@ -2044,48 +1864,6 @@ std::vector<std::vector<int>> gpuPostProcess(const CudaSet& resultSet, bool verb
     
     return processedResults;
 }
-// Post-process results (maintains sequential processing for algorithm correctness)
-std::vector<std::vector<int>> postProcessResults(const CudaSet& resultSet) {
-    HostSet hostResultSet = copyDeviceToHost(resultSet);
-    
-    // Print raw results before post-processing for debugging
-    printf("Result pefore post processing [");
-    for (size_t i = 0; i < hostResultSet.vectors.size(); i++) {
-        printf("{");
-        for (size_t j = 0; j < hostResultSet.vectors[i].size(); j++) {
-            printf("%d", hostResultSet.vectors[i][j]);
-            if (j < hostResultSet.vectors[i].size() - 1) printf(", ");
-        }
-        printf("}");
-        if (i < hostResultSet.vectors.size() - 1) printf(", ");
-    }
-    printf("]\n\n");
-    
-    // Process each set exactly like Python (this needs to be sequential)
-    std::vector<std::vector<int>> processedResults;
-    
-    for (const auto& vector : hostResultSet.vectors) {
-        // Filter out negative integers
-        std::vector<int> positivesOnly;
-        for (int val : vector) {
-            if (val >= 0) {
-                positivesOnly.push_back(val);
-            }
-        }
-        
-        // Sort positives
-        std::sort(positivesOnly.begin(), positivesOnly.end());
-        
-        // Add to processed results
-        processedResults.push_back(positivesOnly);
-    }
-    
-    // Sort lexicographically like Python
-    std::sort(processedResults.begin(), processedResults.end());
-    
-    return processedResults;
-}
-
 
 // Function to read JSON and generate test sets
 std::vector<std::vector<std::vector<int>>> generateTestSetsFromJSON(const std::string& filename) {
