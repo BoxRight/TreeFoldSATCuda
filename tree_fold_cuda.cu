@@ -455,9 +455,6 @@ __device__ bool deviceContains(const int* array, int size, int value) {
     return false;
 }
 
-
-
-
 // Kernel to convert vector elements to unique elements (for Level 1 carry-over)
 __global__ void convertToUniqueKernel(
     int8_t* inputData, int* inputOffsets, int* inputSizes, int numItems,
@@ -491,7 +488,6 @@ __global__ void convertToUniqueKernel(
         outputData[outputOffset + i] = localSet[i];
     }
 }
-
 
 // Kernel that processes all combinations with built-in batching
 __global__ void processAllCombinationsKernel(
@@ -561,11 +557,6 @@ __global__ void processAllCombinationsKernel(
         }
     }
 }
-
-
-
-
-
 
 //-------------------------------------------------------------------------
 // Core processing functions that match Python exactly
@@ -643,15 +634,28 @@ CudaSet processPairCPU(const CudaSet& setA, const CudaSet& setB, int threshold, 
     HostSet hostSetA = copyDeviceToHost(setA);
     HostSet hostSetB = copyDeviceToHost(setB);
     
-    // Process combinations on CPU with sampling
-    std::vector<std::vector<int>> validCombinations;
-    
+    // Open the output file in binary write mode to start fresh.
+    FILE* outFile = fopen("zdd.bin", "wb");
+    if (!outFile) {
+        fprintf(stderr, "Error: Could not open output file zdd.bin for writing.\n");
+        // Return a dummy set to signal failure
+        CudaSet dummyResult = allocateCudaSet(1, 1);
+        int* flagData = (int*)malloc(sizeof(int));
+        flagData[0] = -999999;
+        CHECK_CUDA_ERROR(cudaMemcpy(dummyResult.data, flagData, sizeof(int), cudaMemcpyHostToDevice));
+        free(flagData);
+        return dummyResult;
+    }
+
+    if (verbose) {
+        printf("  Streaming CPU results directly to zdd.bin...\n");
+    }
+
     // For extremely large problems, consider sampling
     bool useSampling = (hostSetA.vectors.size() * hostSetB.vectors.size() > 10000000);
     int stride = useSampling ? 10 : 1; // Process every 10th combination if sampling
     
     int processedCount = 0;
-    int validCount = 0;
     
     for (int idxA = 0; idxA < hostSetA.vectors.size(); idxA++) {
         for (int idxB = 0; idxB < hostSetB.vectors.size(); idxB += stride) {
@@ -667,56 +671,38 @@ CudaSet processPairCPU(const CudaSet& setA, const CudaSet& setB, int threshold, 
             bool isValid = (threshold == 0 || uniqueElements.size() <= threshold);
             
             if (isValid) {
-                validCombinations.push_back(std::vector<int>(uniqueElements.begin(), uniqueElements.end()));
-                validCount++;
+                uint32_t vecSize = uniqueElements.size();
+                fwrite(&vecSize, sizeof(uint32_t), 1, outFile);
+
+                if (vecSize > 0) {
+                    // Convert set to vector to get contiguous data for fwrite
+                    std::vector<int> tempVec(uniqueElements.begin(), uniqueElements.end());
+                    fwrite(tempVec.data(), sizeof(int), vecSize, outFile);
+                }
             }
             
             processedCount++;
             if (verbose && processedCount % 1000000 == 0) {
-                printf("    Processed %d combinations, found %d valid...\n", processedCount, validCount);
+                printf("    Processed %d combinations...\n", processedCount);
             }
         }
     }
     
-    // Remove duplicates
-    std::vector<std::vector<int>> uniqueValidCombinations;
-    
-    for (const auto& combination : validCombinations) {
-        bool isDuplicate = false;
-        
-        for (const auto& existing : uniqueValidCombinations) {
-            if (combination.size() == existing.size()) {
-                std::set<int> combinationSet(combination.begin(), combination.end());
-                std::set<int> existingSet(existing.begin(), existing.end());
-                
-                if (combinationSet == existingSet) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-        }
-        
-        if (!isDuplicate) {
-            uniqueValidCombinations.push_back(combination);
-        }
-    }
-    
+    fclose(outFile);
+
     if (verbose) {
-        printf("  CPU processing produced %zu valid combinations, %zu unique\n", 
-               validCombinations.size(), uniqueValidCombinations.size());
+        printf("  CPU processing complete. All results streamed to zdd.bin\n");
     }
     
-    // Create result set
-    HostSet resultHostSet;
-    resultHostSet.vectors = uniqueValidCombinations;
+    // Return a dummy small CudaSet that indicates stream processing was used
+    CudaSet dummyResult = allocateCudaSet(1, 1);
+    int* flagData = (int*)malloc(sizeof(int));
+    flagData[0] = -999999; // Special flag indicating results were streamed
+    CHECK_CUDA_ERROR(cudaMemcpy(dummyResult.data, flagData, sizeof(int), cudaMemcpyHostToDevice));
+    free(flagData);
     
-    CudaSet resultCudaSet;
-    copyHostToDevice(resultHostSet, &resultCudaSet);
-    
-    return resultCudaSet;
+    return dummyResult;
 }
-
-
 
 // Helper function to extract a subset from a CudaSet
 CudaSet extractSubset(const CudaSet& set, int startIndex, int count, bool verbose) {
@@ -777,144 +763,56 @@ CudaSet extractSubset(const CudaSet& set, int startIndex, int count, bool verbos
     return subSet;
 }
 
-void processAndStreamResults(const std::unordered_map<size_t, std::vector<int>>& uniqueResults, 
-                            const char* outputPath, bool verbose) {
-    if (verbose) {
-        printf("  Streaming %zu results directly to output file\n", uniqueResults.size());
-    }
-    
-    // Open output file
-    FILE* outFile = fopen(outputPath, "w");
-    if (!outFile) {
-        fprintf(stderr, "Error: Could not open output file %s\n", outputPath);
-        return;
-    }
-    
-    // Write header
-    fprintf(outFile, "# Final results: %zu vectors\n", uniqueResults.size());
-    
-    // Convert map to vector for batch processing
-    std::vector<std::vector<int>> allVectors;
-    allVectors.reserve(uniqueResults.size());
-    
-    for (const auto& pair : uniqueResults) {
-        allVectors.push_back(pair.second);
-    }
-    
-    // Process vectors in batches to conserve memory
-    const int BATCH_SIZE = 100000;
-    int batches = (allVectors.size() + BATCH_SIZE - 1) / BATCH_SIZE;
-    
-    std::vector<std::vector<int>> batchResults;
-    
-    for (int batch = 0; batch < batches; batch++) {
-        int start = batch * BATCH_SIZE;
-        int end = std::min(start + BATCH_SIZE, (int)allVectors.size());
-        
-        if (verbose && (batch % 10 == 0 || batch == batches-1)) {
-            printf("    Processing batch %d/%d (%.1f%%)\n", 
-                   batch+1, batches, 100.0 * (batch+1) / batches);
-        }
-        
-        // Clear previous batch
-        batchResults.clear();
-        
-        // Extract and filter this batch
-        for (int i = start; i < end; i++) {
-            const std::vector<int>& vec = allVectors[i];
-            
-            // Filter out negative values
-            std::vector<int> positivesOnly;
-            for (int val : vec) {
-                if (val >= 0) {
-                    positivesOnly.push_back(val);
-                }
-            }
-            
-            // Sort the vector
-            std::sort(positivesOnly.begin(), positivesOnly.end());
-            
-            batchResults.push_back(positivesOnly);
-        }
-        
-        // Sort this batch
-        std::sort(batchResults.begin(), batchResults.end());
-        
-        // Write to file
-        for (const auto& vec : batchResults) {
-            fprintf(outFile, "[");
-            for (size_t i = 0; i < vec.size(); i++) {
-                fprintf(outFile, "%d", vec[i]);
-                if (i < vec.size() - 1) fprintf(outFile, ", ");
-            }
-            fprintf(outFile, "]\n");
-        }
-        
-        // Ensure data is written
-        fflush(outFile);
-    }
-    
-    // Close file
-    fclose(outFile);
-    
-    if (verbose) {
-        printf("  Results successfully written to %s\n", outputPath);
-    }
-}
-
 CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose) {
     int numItemsA = setA.numItems;
     int numItemsB = setB.numItems;
     long long totalCombinations = (long long)numItemsA * (long long)numItemsB;
     
     if (verbose) {
-        printf("  Processing large pair with tiled approach: Set A (%d items) + Set B (%d items), threshold = %d\n", 
+        printf("  Processing large pair with true streaming: Set A (%d items) + Set B (%d items), threshold = %d\n", 
                numItemsA, numItemsB, threshold);
-        printf("  Total combinations: %lld - using tiled processing for efficiency\n", totalCombinations);
+        printf("  Total combinations: %lld - results will be streamed directly to disk.\n", totalCombinations);
+    }
+
+    // Open the output file in binary write mode to start fresh.
+    FILE* outFile = fopen("zdd.bin", "wb");
+    if (!outFile) {
+        fprintf(stderr, "Error: Could not open output file zdd.bin for writing.\n");
+        // Return a dummy set to signal failure
+        CudaSet dummyResult = allocateCudaSet(1, 1);
+        int* flagData = (int*)malloc(sizeof(int));
+        flagData[0] = -999999;
+        CHECK_CUDA_ERROR(cudaMemcpy(dummyResult.data, flagData, sizeof(int), cudaMemcpyHostToDevice));
+        free(flagData);
+        return dummyResult;
     }
     
     // Define tile sizes based on problem dimensions
     int TILE_SIZE_A = 32;
     int TILE_SIZE_B = 1024;
     
-    // Adjust tile sizes if needed
     if (numItemsA > 1000 || numItemsB > 10000) {
         TILE_SIZE_A = 16;
         TILE_SIZE_B = 512;
     }
     
-    // Calculate number of tiles
     int numTilesA = (numItemsA + TILE_SIZE_A - 1) / TILE_SIZE_A;
     int numTilesB = (numItemsB + TILE_SIZE_B - 1) / TILE_SIZE_B;
     int totalTiles = numTilesA * numTilesB;
     
-    if (verbose) {
-        printf("    Processing in %d x %d = %d tiles\n", numTilesA, numTilesB, totalTiles);
-        printf("    Tile dimensions: %d x %d items\n", TILE_SIZE_A, TILE_SIZE_B);
-    }
-    
-    // Maintain a set of unique results with fast lookup
-    std::unordered_map<size_t, std::vector<int>> uniqueResults;
-    
-    // Hash function for vectors
-    auto hashVector = [](const std::vector<int>& vec) {
-        size_t hash = vec.size();
-        for (int val : vec) {
-            hash ^= std::hash<int>{}(val) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-        }
-        return hash;
-    };
-    
-    // Process each tile
     int tilesProcessed = 0;
     int lastProgressUpdate = 0;
-    
+
+    // Hoist vectors outside the loop to prevent repeated re-allocations.
+    std::vector<int> hostValidFlags;
+    std::vector<int> hostSizes;
+    std::vector<int> hostResultData;
+
     for (int tileA = 0; tileA < numTilesA; tileA++) {
         int startA = tileA * TILE_SIZE_A;
         int endA = std::min(startA + TILE_SIZE_A, numItemsA);
         int sizeA = endA - startA;
         
-        // Create a sub-set for this tile of setA
         CudaSet tileSetA = extractSubset(setA, startA, sizeA, verbose);
         
         for (int tileB = 0; tileB < numTilesB; tileB++) {
@@ -923,42 +821,32 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
             int sizeB = endB - startB;
             
             tilesProcessed++;
-            
-            // Update progress periodically
             int progressPercentage = (tilesProcessed * 100) / totalTiles;
             if (verbose && (progressPercentage > lastProgressUpdate || tilesProcessed == totalTiles)) {
-                printf("      Processing tile [%d,%d] x [%d,%d] (Tile %d of %d - %d%% complete)\n", 
-                      startA, endA-1, startB, endB-1, tilesProcessed, totalTiles, progressPercentage);
+                printf("      Processing tile %d of %d - %d%% complete\n", 
+                      tilesProcessed, totalTiles, progressPercentage);
                 lastProgressUpdate = progressPercentage;
             }
             
-            // Create a sub-set for this tile of setB
             CudaSet tileSetB = extractSubset(setB, startB, sizeB, verbose);
-            
-            // Process this tile pair directly - AVOID circular call to processPair
-            // Instead, we'll inline the core GPU processing logic here
             
             int numTileItemsA = tileSetA.numItems;
             int numTileItemsB = tileSetB.numItems;
             long long tileCombinations = (long long)numTileItemsA * (long long)numTileItemsB;
             
-            // Allocate result buffer for this tile
             CombinationResultBuffer resultBuffer = allocateCombinationResultBuffer(numTileItemsA, numTileItemsB, MAX_ELEMENTS_PER_VECTOR);
             
-            // Configure kernel launch
             int threadsPerBlock = 256;
             int maxResultsPerThread = 4;
             int threadsNeeded = (tileCombinations + maxResultsPerThread - 1) / maxResultsPerThread;
             int blocksNeeded = (threadsNeeded + threadsPerBlock - 1) / threadsPerBlock;
             
-            // Limit blocks to avoid excessive memory usage
             const int MAX_BLOCKS = 16384;
             if (blocksNeeded > MAX_BLOCKS) {
                 blocksNeeded = MAX_BLOCKS;
                 maxResultsPerThread = (tileCombinations + (blocksNeeded * threadsPerBlock) - 1) / (blocksNeeded * threadsPerBlock);
             }
             
-            // Launch kernel
             processAllCombinationsKernel<<<blocksNeeded, threadsPerBlock>>>(
                 tileSetA.data, tileSetA.offsets, tileSetA.sizes, numTileItemsA,
                 tileSetB.data, tileSetB.offsets, tileSetB.sizes, numTileItemsB,
@@ -968,97 +856,51 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
             );
             CHECK_CUDA_ERROR(cudaDeviceSynchronize());
             
-            // Count valid combinations
-            std::vector<int> hostValidFlags(resultBuffer.numCombinations);
+            hostValidFlags.resize(resultBuffer.numCombinations);
             CHECK_CUDA_ERROR(cudaMemcpy(hostValidFlags.data(), resultBuffer.validFlags, 
                                       resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
             
             int validCount = 0;
-            for (int i = 0; i < resultBuffer.numCombinations; i++) {
-                if (hostValidFlags[i]) validCount++;
+            for (int flag : hostValidFlags) {
+                if (flag) validCount++;
             }
             
-            // Process valid combinations
             if (validCount > 0) {
-                std::vector<int> hostSizes(resultBuffer.numCombinations);
+                hostSizes.resize(resultBuffer.numCombinations);
                 CHECK_CUDA_ERROR(cudaMemcpy(hostSizes.data(), resultBuffer.sizes, 
                                           resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
                 
-                std::vector<int> hostResultData(resultBuffer.numCombinations * resultBuffer.maxResultSize);
+                hostResultData.resize(resultBuffer.numCombinations * resultBuffer.maxResultSize);
                 CHECK_CUDA_ERROR(cudaMemcpy(hostResultData.data(), resultBuffer.data,
                                           resultBuffer.numCombinations * resultBuffer.maxResultSize * sizeof(int),
                                           cudaMemcpyDeviceToHost));
                 
-                // Collect and add valid combinations to our results
-                int newResults = 0;
-                int duplicates = 0;
-                
                 for (int i = 0; i < resultBuffer.numCombinations; i++) {
                     if (hostValidFlags[i]) {
-                        int size = hostSizes[i];
-                        std::vector<int> combination(size);
+                        uint32_t vecSize = hostSizes[i];
                         int offset = i * resultBuffer.maxResultSize;
                         
-                        for (int j = 0; j < size; j++) {
-                            combination[j] = hostResultData[offset + j];
-                        }
-                        
-                        // Sort the combination for canonicalization
-                        std::sort(combination.begin(), combination.end());
-                        
-                        // Add to unique results if not present
-                        size_t hash = hashVector(combination);
-                        
-                        if (uniqueResults.find(hash) == uniqueResults.end()) {
-                            // Check for hash collision
-                            bool isUnique = true;
-                            if (uniqueResults.count(hash) > 0) {
-                                if (uniqueResults[hash] == combination) {
-                                    isUnique = false;
-                                }
-                            }
-                            
-                            if (isUnique) {
-                                uniqueResults[hash] = std::move(combination);
-                                newResults++;
-                            } else {
-                                duplicates++;
-                            }
-                        } else {
-                            duplicates++;
+                        fwrite(&vecSize, sizeof(uint32_t), 1, outFile);
+                        if (vecSize > 0) {
+                            fwrite(hostResultData.data() + offset, sizeof(int), vecSize, outFile);
                         }
                     }
                 }
-                
-                //if (verbose && validCount > 0) {
-               //     printf("        Tile result: %d total, %d new unique, %d duplicates\n", 
-                //           validCount, newResults, duplicates);
-                //    printf("        Total unique results so far: %zu\n", uniqueResults.size());
-               // }
             }
             
-            // Free result buffer
             freeCombinationResultBuffer(&resultBuffer);
-            
-            // Free tile resources
             freeCudaSet(&tileSetB);
         }
         
-        // Free tile resources
         freeCudaSet(&tileSetA);
     }
     
-
+    fclose(outFile);
     
     if (verbose) {
-        printf("  Final result: %zu unique combinations\n", uniqueResults.size());
+        printf("  Large pair processing complete. All results streamed to zdd.bin\n");
     }
     
-    if (uniqueResults.size() > 20000000) {
-        // Stream results to disk
-        processAndStreamResults(uniqueResults, "zdd.txt", verbose);
-        
-        // Return a dummy small CudaSet that indicates stream processing was used
         CudaSet dummyResult = allocateCudaSet(1, 1);
         int* flagData = (int*)malloc(sizeof(int));
         flagData[0] = -999999; // Special flag indicating results were streamed
@@ -1068,23 +910,6 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
         return dummyResult;
     }
     
-    // Convert map to result vectors
-    std::vector<std::vector<int>> finalResults;
-    finalResults.reserve(uniqueResults.size());
-    
-    for (const auto& pair : uniqueResults) {
-        finalResults.push_back(pair.second);
-    }
-    // Create result set
-    HostSet resultHostSet;
-    resultHostSet.vectors = finalResults;
-    
-    
-    CudaSet resultCudaSet;
-    copyHostToDevice(resultHostSet, &resultCudaSet);
-    
-    return resultCudaSet;
-}
 // Process a pair of sets using parallel kernel (maintains exact logic but parallelized)
 // Process a pair of sets using batched approach for large sets
 // Process a pair of sets using parallel kernel (simplified for correctness)
@@ -1434,110 +1259,6 @@ CudaSet treeFoldOperations(const std::vector<CudaSet>& sets, bool verbose) {
     // Return the final result
     return currentLevel[0];
 }
-// Kernel to filter out negative values and sort
-__global__ void filterAndSortKernel(int8_t* data, int* offsets, int* sizes, int numVectors, int maxLen) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= numVectors) return;
-    
-    int offset = offsets[idx];
-    int originalSize = sizes[idx];
-    
-    // Step 1: Filter out negatives
-    int newSize = 0;
-    for (int i = 0; i < originalSize; i++) {
-        int val = data[offset + i];
-        if (val >= 0) {
-            // Keep only non-negative values
-            data[offset + newSize] = val;
-            newSize++;
-        }
-    }
-    
-    // Update size
-    sizes[idx] = newSize;
-    
-    // Step 2: Sort (simple insertion sort)
-    for (int i = 1; i < newSize; i++) {
-        int key = data[offset + i];
-        int j = i - 1;
-        
-        while (j >= 0 && data[offset + j] > key) {
-            data[offset + j + 1] = data[offset + j];
-            j--;
-        }
-        
-        data[offset + j + 1] = key;
-    }
-}
-
-// Function to post-process on GPU before transferring to host
-// Function to post-process on GPU then complete ordering on CPU
-std::vector<std::vector<int>> gpuPostProcess(const CudaSet& resultSet, bool verbose) {
-    // Step 1: Run GPU kernel to filter and sort all vectors internally
-    int threadsPerBlock = 256;
-    int blocks = (resultSet.numItems + threadsPerBlock - 1) / threadsPerBlock;
-    
-    if (verbose) {
-        printf("Running GPU post-processing on %d vectors\n", resultSet.numItems);
-    }
-    
-    filterAndSortKernel<<<blocks, threadsPerBlock>>>(
-        resultSet.data, resultSet.offsets, resultSet.sizes, 
-        resultSet.numItems, MAX_ELEMENTS_PER_VECTOR);
-    
-    CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-    
-    if (verbose) {
-        printf("GPU internal sorting complete, transferring to host for final sorting\n");
-    }
-    
-    // Step 2: Process in batches to avoid memory issues
-    const int BATCH_SIZE = 100000;
-    int totalVectors = resultSet.numItems;
-    int batches = (totalVectors + BATCH_SIZE - 1) / BATCH_SIZE;
-    
-    std::vector<std::vector<int>> processedResults;
-    processedResults.reserve(std::min(totalVectors, 10000000)); // Reserve reasonable amount
-    
-    for (int batch = 0; batch < batches; batch++) {
-        int start = batch * BATCH_SIZE;
-        int end = std::min(start + BATCH_SIZE, totalVectors);
-        
-        if (verbose) {
-            printf("Processing batch %d/%d (vectors %d to %d)\n", batch+1, batches, start, end-1);
-        }
-        
-        // Extract subset of the CudaSet
-        CudaSet batchSet = extractSubset(resultSet, start, end - start, false);
-        
-        // Process this batch - already filtered and sorted internally by GPU
-        HostSet hostBatch = copyDeviceToHost(batchSet);
-        
-        // Add to results
-        for (const auto& vector : hostBatch.vectors) {
-            processedResults.push_back(vector);
-        }
-        
-        // Free batch resources
-        freeCudaSet(&batchSet);
-        
-        // Sort intermediate results if getting too large
-        if (processedResults.size() > 1000000) {
-            if (verbose) {
-                printf("  Performing intermediate sort of %zu results\n", processedResults.size());
-            }
-            std::sort(processedResults.begin(), processedResults.end());
-        }
-    }
-    
-    // Final lexicographical sorting of all vectors
-    if (verbose) {
-        printf("Performing final lexicographical sort of %zu vectors\n", processedResults.size());
-    }
-    std::sort(processedResults.begin(), processedResults.end());
-    
-    return processedResults;
-}
 
 // Function to read JSON and generate test sets
 std::vector<std::vector<std::vector<int>>> generateTestSetsFromJSON(const std::string& filename) {
@@ -1649,7 +1370,6 @@ std::vector<std::vector<std::vector<int>>> generateTestSetsFromJSON(const std::s
 }
 
 // Run test cases
-// Run test cases
 void runTestCases() {
     std::vector<std::vector<std::vector<int>>> testSets = 
         generateTestSetsFromJSON("kelsen_data.json");
@@ -1699,98 +1419,45 @@ void runTestCases() {
     float milliseconds = 0;
     cudaEventElapsedTime(&milliseconds, start, stop);
     
-    printf("\nFinal result contains %d combinations (computed in %.2f ms)\n", result.numItems, milliseconds);
-    // Check if we got a dummy result (indicating results were too large and written to disk)
+    printf("\nTree fold operations completed in %.2f ms.\n", milliseconds);
+
+    // Check if the result was streamed to disk in a lower-level function
+    bool streamed = false;
     if (result.numItems == 1) {
-        // Check if this is our special flag value
         int flagValue;
         CHECK_CUDA_ERROR(cudaMemcpy(&flagValue, result.data, sizeof(int), cudaMemcpyDeviceToHost));
-        
         if (flagValue == -999999) {
-            printf("Results were too large and were written to disk. Skipping post-processing.\n");
-            printf("Check the output file for complete results.\n");
-        } else {
-            // It's just a normal single-item result, process it
-            std::vector<std::vector<int>> processedResults = gpuPostProcess(result, true);
-            
-            printf("Final processed result contains %zu combinations (negatives removed, sorted by magnitude)\n", 
-                   processedResults.size());
-            
-            // Open file for writing
-            FILE* outFile = fopen("zdd.txt", "w");
-            if (!outFile) {
-                fprintf(stderr, "Error: Could not open zdd.txt for writing\n");
-            } else {
-                // Write header to file
-                fprintf(outFile, "# Final results: %zu vectors\n", processedResults.size());
-            }
-            
-            for (size_t i = 0; i < processedResults.size(); i++) {
-                // Print to console
-                printf("Result %zu: [", i + 1);
-                for (size_t j = 0; j < processedResults[i].size(); j++) {
-                    printf("%d", processedResults[i][j]);
-                    if (j < processedResults[i].size() - 1) printf(", ");
-                }
-                printf("]\n");
-                
-                // Write to file if open
-                if (outFile) {
-                    fprintf(outFile, "[");
-                    for (size_t j = 0; j < processedResults[i].size(); j++) {
-                        fprintf(outFile, "%d", processedResults[i][j]);
-                        if (j < processedResults[i].size() - 1) fprintf(outFile, ", ");
-                    }
-                    fprintf(outFile, "]\n");
-                }
-            }
-            
-            // Close file if open
-            if (outFile) {
-                fclose(outFile);
-                printf("Results written to zdd.txt\n");
-            }
+            streamed = true;
+            printf("Results were too large and were streamed to zdd.bin during processing.\n");
         }
-    } else {
-        // Normal case - process the results
-        std::vector<std::vector<int>> processedResults = gpuPostProcess(result, true);
+    }
+    
+    if (!streamed) {
+        // Process the final result set normally
+        printf("Final result contains %d combinations. Writing to zdd.bin...\n", result.numItems);
         
-        printf("Final processed result contains %zu combinations (negatives removed, sorted by magnitude)\n", 
-               processedResults.size());
-        
-        // Open file for writing
-        FILE* outFile = fopen("zdd.txt", "w");
+        // Copy final results from device to host
+        HostSet finalHostSet = copyDeviceToHost(result);
+
+        // Open file for writing in binary mode
+        FILE* outFile = fopen("zdd.bin", "wb");
         if (!outFile) {
-            fprintf(stderr, "Error: Could not open zdd.txt for writing\n");
+            fprintf(stderr, "Error: Could not open zdd.bin for writing\n");
         } else {
-            // Write header to file
-            fprintf(outFile, "# Final results: %zu vectors\n", processedResults.size());
-        }
-        
-        for (size_t i = 0; i < processedResults.size(); i++) {
-            // Print to console
-            printf("Result %zu: [", i + 1);
-            for (size_t j = 0; j < processedResults[i].size(); j++) {
-                printf("%d", processedResults[i][j]);
-                if (j < processedResults[i].size() - 1) printf(", ");
-            }
-            printf("]\n");
-            
-            // Write to file if open
-            if (outFile) {
-                fprintf(outFile, "[");
-                for (size_t j = 0; j < processedResults[i].size(); j++) {
-                    fprintf(outFile, "%d", processedResults[i][j]);
-                    if (j < processedResults[i].size() - 1) fprintf(outFile, ", ");
-                }
-                fprintf(outFile, "]\n");
+            // Write total number of vectors
+            uint64_t numVectors = finalHostSet.vectors.size();
+            fwrite(&numVectors, sizeof(uint64_t), 1, outFile);
+
+            // Write each vector
+            for (const auto& vec : finalHostSet.vectors) {
+                uint32_t vecSize = vec.size();
+                fwrite(&vecSize, sizeof(uint32_t), 1, outFile);
+                if (vecSize > 0) {
+                    fwrite(vec.data(), sizeof(int), vecSize, outFile);
             }
         }
-        
-        // Close file if open
-        if (outFile) {
             fclose(outFile);
-            printf("Results written to zdd.txt\n");
+            printf("Results successfully written to zdd.bin\n");
         }
     }
     
