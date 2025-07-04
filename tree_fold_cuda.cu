@@ -276,7 +276,7 @@ public:
 
     // Reads the next batch of vectors into the provided CudaSet buffer.
     // Returns the number of vectors actually read.
-    int readNextChunk(CudaSet& chunk_buffer, int max_vectors_to_read) {
+    int readNextChunk(CudaSet& chunk_buffer, int max_vectors_to_read, int buffer_data_capacity) {
         if (!file.is_open() || file.peek() == EOF) {
             return 0; // End of file or file not open
         }
@@ -285,19 +285,44 @@ public:
         hostSet.vectors.reserve(max_vectors_to_read);
         int totalElementsInChunk = 0;
 
-        for (int i = 0; i < max_vectors_to_read; ++i) {
-            uint32_t vecSize;
-            file.read(reinterpret_cast<char*>(&vecSize), sizeof(uint32_t));
-            if (file.gcount() == 0) { // EOF
+        while (hostSet.vectors.size() < max_vectors_to_read) {
+            if (file.peek() == EOF) {
                 break;
             }
-            
+
+            uint32_t vecSize;
+            file.read(reinterpret_cast<char*>(&vecSize), sizeof(uint32_t));
+            if (file.gcount() == 0) { // Should be caught by peek(), but for safety
+                break;
+            }
+
+            // Check if this single vector can fit.
+            // If it can't, and the buffer is empty, then the buffer is too small.
+            if (hostSet.vectors.empty() && vecSize > buffer_data_capacity) {
+                fprintf(stderr, "CudaSetReader Error: A single vector (size %u) is larger than the entire chunk buffer (size %d).\n",
+                        vecSize, buffer_data_capacity);
+                // This is a fatal error, we cannot proceed with this configuration.
+                exit(EXIT_FAILURE);
+            }
+
+            // If we have some vectors and the next one won't fit, stop here for this chunk.
+            if (!hostSet.vectors.empty() && (totalElementsInChunk + vecSize > buffer_data_capacity)) {
+                // Seek back to before we read the size, so the next readNextChunk call gets it.
+                file.seekg(-static_cast<std::streamoff>(sizeof(uint32_t)), std::ios::cur);
+                break;
+            }
+
             totalElementsInChunk += vecSize;
             std::vector<int> vec(vecSize);
             if (vecSize > 0) {
                 file.read(reinterpret_cast<char*>(vec.data()), vecSize * sizeof(int));
+                if (file.gcount() != static_cast<std::streamsize>(vecSize * sizeof(int))) {
+                    fprintf(stderr, "CudaSetReader Error: Corrupted file or unexpected EOF in %s\n", filename.c_str());
+                    totalElementsInChunk -= vecSize; // Revert change
+                    break;
+                }
             }
-            hostSet.vectors.push_back(std::move(vec)); // Use move semantics
+            hostSet.vectors.push_back(std::move(vec));
         }
 
         if (hostSet.vectors.empty()) {
@@ -330,7 +355,7 @@ public:
         assert(totalElements == totalElementsInChunk);
 
         // The caller is responsible for ensuring chunk_buffer is large enough.
-        assert(totalElements <= chunk_buffer.bufferSize && "CudaSetReader: chunk_buffer.data not large enough.");
+        assert(totalElements <= buffer_data_capacity && "CudaSetReader: chunk_buffer.data not large enough.");
         
         // Update the CudaSet's metadata on the device
         chunk_buffer.numItems = numItems;
@@ -1230,11 +1255,11 @@ CudaSet processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int
 
         // 3. Loop through chunks of setA
         CudaSetReader readerA(setA.backing_file, verbose);
-        while (readerA.readNextChunk(chunkA, CHUNK_VECTORS) > 0) {
+        while (readerA.readNextChunk(chunkA, CHUNK_VECTORS, CHUNK_BUFFER_ELEMENTS) > 0) {
             
             // 4. For each chunk of A, loop through all chunks of setB
             CudaSetReader readerB(setB.backing_file, verbose);
-            while (readerB.readNextChunk(chunkB, CHUNK_VECTORS) > 0) {
+            while (readerB.readNextChunk(chunkB, CHUNK_VECTORS, CHUNK_BUFFER_ELEMENTS) > 0) {
                 
                 if (verbose) {
                     printf("    Processing chunk A (%d items) vs chunk B (%d items)\n", chunkA.numItems, chunkB.numItems);
@@ -1287,7 +1312,7 @@ CudaSet processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int
 
         // 3. Loop through chunks of the lazy set
         CudaSetReader reader(lazySet.backing_file, verbose);
-        while (reader.readNextChunk(chunk, CHUNK_VECTORS) > 0) {
+        while (reader.readNextChunk(chunk, CHUNK_VECTORS, CHUNK_BUFFER_ELEMENTS) > 0) {
             if (verbose) {
                 printf("    Processing chunk (%d items) vs real set (%d items)\n", chunk.numItems, realSet.numItems);
             }

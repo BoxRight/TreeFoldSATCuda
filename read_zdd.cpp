@@ -75,6 +75,6 @@ void inspect_binary_file(const char* filename, int vectors_to_print = 100) {
 }
 
 int main() {
-    inspect_binary_file("zdd.bin");
+    inspect_binary_file("zdd_L4_P1.bin");
     return 0;
 } 
