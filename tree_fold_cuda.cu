@@ -1120,7 +1120,7 @@ CudaSet processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int
         return processPairCPU(setA, setB, threshold, level, verbose);
     }
             // For extremely large combinations, use the memory-efficient approach
-    if (totalCombinations > 5000000LL) { // 5 million threshold
+    if (totalCombinations > 3000000LL) { // 3 million threshold
         return processLargePair(setA, setB, threshold, level, verbose);
     }
     
