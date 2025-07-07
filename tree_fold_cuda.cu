@@ -1319,44 +1319,172 @@ CudaSet treeFoldOperations(const std::vector<CudaSet>& sets, bool verbose) {
             printf("\nProcessing Level %d with %zu sets\n", level, currentLevel.size());
         }
         
-        std::vector<CudaSet> nextLevel;
+              std::vector<CudaSet> nextLevel;
         
-        // Process pairs of sets
-        size_t i = 0;
-        while (i < currentLevel.size() - 1) {
-            CudaSet setA = currentLevel[i];
-            CudaSet setB = currentLevel[i + 1];
-            
-            // Compute threshold for this pair (sequential - critical for algorithm correctness)
-            int threshold = computeThreshold(setA, setB);
-            
-            // Process the pair (parallelized internally)
-            CudaSet resultSet = processPair(setA, setB, threshold, level, verbose);
-            nextLevel.push_back(resultSet);
-            
-            // Free intermediate sets
-            if (level > 1) {
-                freeCudaSet(&currentLevel[i]);
-                freeCudaSet(&currentLevel[i + 1]);
-            }
-            
-            i += 2;
+        // Create a list of available set indices
+        std::vector<int> availableIndices;
+        for (int i = 0; i < currentLevel.size(); i++) {
+            availableIndices.push_back(i);
         }
         
-        // If odd number of sets, carry the last one to next level
-        if (i == currentLevel.size() - 1) {
+        // Optimized pairing: compute thresholds for all possible pairs and select greedily
+        while (availableIndices.size() >= 2) {
+            int bestI = -1, bestJ = -1;
+            int lowestThreshold = INT_MAX;
+            
+            if (verbose) {
+                printf("  Computing optimal pairing for %zu remaining sets...\n", availableIndices.size());
+                printf("  Available sets: ");
+                for (int idx : availableIndices) {
+                    printf("%d(%d items) ", idx, currentLevel[idx].numItems);
+                }
+                printf("\n");
+            }
+            
+            // Debug: Show all threshold computations
+            if (verbose) {
+                printf("  Threshold matrix:\n");
+                printf("    ");
+                for (size_t j = 0; j < availableIndices.size(); j++) {
+                    printf("%8d ", availableIndices[j]);
+                }
+                printf("\n");
+            }
+            
+            // Find the pair with the lowest threshold (most restrictive)
+            for (size_t i = 0; i < availableIndices.size(); i++) {
+                if (verbose) {
+                    printf("  %2d: ", availableIndices[i]);
+                }
+                
+                for (size_t j = i + 1; j < availableIndices.size(); j++) {
+                    int idxA = availableIndices[i];
+                    int idxB = availableIndices[j];
+                    
+                    CudaSet& setA = currentLevel[idxA];
+                    CudaSet& setB = currentLevel[idxB];
+                    
+                    // Compute threshold for this pair
+                    int threshold = computeThreshold(setA, setB);
+                    
+                    if (verbose) {
+                        printf("%8d ", threshold);
+                    }
+                    
+                    // Track the pair with the lowest (most restrictive) threshold
+                    if (threshold < lowestThreshold) {
+                        lowestThreshold = threshold;
+                        bestI = idxA;
+                        bestJ = idxB;
+                    }
+                }
+                
+                if (verbose) {
+                    printf("\n");
+                }
+            }
+            
+            if (verbose) {
+                printf("  --> Selected optimal pair: Set %d (%d items) + Set %d (%d items)\n", 
+                       bestI, currentLevel[bestI].numItems, bestJ, currentLevel[bestJ].numItems);
+                printf("  --> Threshold = %d (most restrictive among all pairs)\n", lowestThreshold);
+                
+                // Show what other thresholds were available
+                printf("  --> Alternative thresholds that were NOT selected:\n");
+                for (size_t i = 0; i < availableIndices.size(); i++) {
+                    for (size_t j = i + 1; j < availableIndices.size(); j++) {
+                        int idxA = availableIndices[i];
+                        int idxB = availableIndices[j];
+                        
+                        if (idxA == bestI && idxB == bestJ) continue; // Skip the selected pair
+                        
+                        int threshold = computeThreshold(currentLevel[idxA], currentLevel[idxB]);
+                        printf("      Set %d + Set %d: threshold = %d (difference: +%d)\n", 
+                               idxA, idxB, threshold, threshold - lowestThreshold);
+                    }
+                }
+            }
+            
+            // Process the optimal pair
+            CudaSet& setA = currentLevel[bestI];
+            CudaSet& setB = currentLevel[bestJ];
+            
+            if (verbose) {
+                printf("  --> Processing optimal pair...\n");
+            }
+            
+            CudaSet resultSet = processPair(setA, setB, lowestThreshold, level, verbose);
+            nextLevel.push_back(resultSet);
+            
+            if (verbose) {
+                printf("  --> Result: %d combinations (reduction factor: %.2fx)\n", 
+                       resultSet.numItems, 
+                       (double)(setA.numItems * setB.numItems) / std::max(1, resultSet.numItems));
+                printf("  --> Theoretical max combinations: %lld, actual: %d (efficiency: %.2f%%)\n",
+                       (long long)setA.numItems * setB.numItems, 
+                       resultSet.numItems,
+                       100.0 * resultSet.numItems / ((long long)setA.numItems * setB.numItems));
+            }
+            
+            // Free intermediate sets (but don't free the original input sets at level 1)
+            if (level > 1) {
+                freeCudaSet(&setA);
+                freeCudaSet(&setB);
+            }
+            
+            // Remove the processed indices from available list (remove larger index first)
+            int removeFirst = (bestI > bestJ) ? bestI : bestJ;
+            int removeSecond = (bestI > bestJ) ? bestJ : bestI;
+            
+            availableIndices.erase(std::find(availableIndices.begin(), availableIndices.end(), removeFirst));
+            availableIndices.erase(std::find(availableIndices.begin(), availableIndices.end(), removeSecond));
+            
+            if (verbose) {
+                printf("  --> Removed sets %d and %d from available list\n", bestI, bestJ);
+                printf("  --> %zu sets remaining for next iteration\n\n", availableIndices.size());
+            }
+        }
+        
+        // Handle any remaining odd set
+        if (availableIndices.size() == 1) {
+            int carriedIdx = availableIndices[0];
+            CudaSet& carriedSet = currentLevel[carriedIdx];
+            
+            if (verbose) {
+                printf("  --> Carrying over odd set %d (%d items) to next level\n", 
+                       carriedIdx, carriedSet.numItems);
+            }
+            
             if (level == 1) {
                 // Special handling for level 1 (parallelized)
-                CudaSet convertedSet = convertSetToUnique(currentLevel[i], verbose);
+                CudaSet convertedSet = convertSetToUnique(carriedSet, verbose);
                 nextLevel.push_back(convertedSet);
-            } else {
-                nextLevel.push_back(currentLevel[i]);
                 if (verbose) {
-                    printf("  Carried over the last set with %d items\n", currentLevel[i].numItems);
+                    printf("  --> Converted to unique elements: %d items\n", convertedSet.numItems);
+                }
+            } else {
+                // Copy the set to next level
+                CudaSet copiedSet = extractSubset(carriedSet, 0, carriedSet.numItems, false);
+                nextLevel.push_back(copiedSet);
+                if (verbose) {
+                    printf("  --> Copied %d items to next level\n", copiedSet.numItems);
                 }
             }
         }
         
+        if (verbose) {
+            printf("  Level %d summary:\n", level);
+            printf("    Input: %zu sets\n", currentLevel.size());
+            printf("    Output: %zu sets\n", nextLevel.size());
+            printf("    Total items going to next level: ");
+            int totalItems = 0;
+            for (const auto& set : nextLevel) {
+                totalItems += set.numItems;
+                printf("%d ", set.numItems);
+            }
+            printf("(total: %d)\n", totalItems);
+            printf("  ========================================\n");
+        }
         // Move to next level
         currentLevel = nextLevel;
     }

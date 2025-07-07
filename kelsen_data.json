@@ -34,10 +34,10 @@
     },
     {
       "id": 5,
-      "key": "El ARRENDADOR LIE_ART46_PERMISO_REPRESENTACION y NORM_REFERENCE:51 al ARRENDATARIO",
+      "key": "El ARRENDADOR LIE_ART46_PERMISO_REPRESENTACION al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "LIE_ART46_PERMISO_REPRESENTACION y NORM_REFERENCE:51",
+      "description": "LIE_ART46_PERMISO_REPRESENTACION",
       "type": 0
     },
     {
@@ -50,14 +50,6 @@
     },
     {
       "id": 7,
-      "key": "El ARRENDADOR CCF_ART2413_TIEMPO_ENTREGA al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2413_TIEMPO_ENTREGA",
-      "type": 0
-    },
-    {
-      "id": 8,
       "key": "El ARRENDADOR entregar sistema solar completamente instalado probado y en condiciones de generar energía según especificaciones técnicas al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -65,15 +57,7 @@
       "type": 0
     },
     {
-      "id": 9,
-      "key": "El ARRENDADOR CCF_ART2412_ENTREGA_COSA_ARRENDADA y NORM_REFERENCE:2 al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2412_ENTREGA_COSA_ARRENDADA y NORM_REFERENCE:2",
-      "type": 0
-    },
-    {
-      "id": 10,
+      "id": 8,
       "key": "El ARRENDADOR realizar instalación y tramitar contrato de interconexión con la red de distribución local al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -81,15 +65,7 @@
       "type": 0
     },
     {
-      "id": 11,
-      "key": "El ARRENDADOR LIE_ART33_OBLIGACION_INTERCONEXION y LIE_ART18_CONTRATOS_INTERCONEXION_GENERADORES al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "LIE_ART33_OBLIGACION_INTERCONEXION y LIE_ART18_CONTRATOS_INTERCONEXION_GENERADORES",
-      "type": 0
-    },
-    {
-      "id": 12,
+      "id": 9,
       "key": "El ARRENDATARIO pagar renta mensual de 2500.00 MXN por el uso del sistema solar en los primeros 5 días de cada mes al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -97,15 +73,7 @@
       "type": 0
     },
     {
-      "id": 13,
-      "key": "El ARRENDATARIO CCF_ART2425_PAGO_RENTA y NORM_REFERENCE:2 al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2425_PAGO_RENTA y NORM_REFERENCE:2",
-      "type": 0
-    },
-    {
-      "id": 14,
+      "id": 10,
       "key": "El ARRENDATARIO pagar la renta mediante transferencia bancaria a cuenta designada por el arrendador o en el domicilio del arrendatario si así se requiere al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -113,15 +81,7 @@
       "type": 0
     },
     {
-      "id": 15,
-      "key": "El ARRENDATARIO CCF_ART2427_LUGAR_PAGO_RENTA al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2427_LUGAR_PAGO_RENTA",
-      "type": 0
-    },
-    {
-      "id": 16,
+      "id": 11,
       "key": "El ARRENDATARIO iniciar el pago de renta únicamente desde el día que reciba y pruebe el correcto funcionamiento del sistema solar al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -129,15 +89,7 @@
       "type": 0
     },
     {
-      "id": 17,
-      "key": "El ARRENDATARIO CCF_ART2426_PAGO_DESDE_RECEPCION al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2426_PAGO_DESDE_RECEPCION",
-      "type": 0
-    },
-    {
-      "id": 18,
+      "id": 12,
       "key": "El ARRENDADOR conservar el sistema solar en el mismo estado durante el arrendamiento proporcionando mantenimiento preventivo semestral y correctivo cuando sea necesario al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -145,15 +97,7 @@
       "type": 0
     },
     {
-      "id": 19,
-      "key": "El ARRENDADOR CCF_ART2412_CONSERVACION_REPARACIONES y NORM_REFERENCE:2 al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2412_CONSERVACION_REPARACIONES y NORM_REFERENCE:2",
-      "type": 0
-    },
-    {
-      "id": 20,
+      "id": 13,
       "key": "El ARRENDATARIO notificar al arrendador cualquier mal funcionamiento o necesidad de reparación del sistema a la brevedad posible al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -161,15 +105,7 @@
       "type": 0
     },
     {
-      "id": 21,
-      "key": "El ARRENDATARIO CCF_ART2415_NOTIFICACION_REPARACIONES al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2415_NOTIFICACION_REPARACIONES",
-      "type": 0
-    },
-    {
-      "id": 22,
+      "id": 14,
       "key": "El ARRENDATARIO elegir entre rescindir el contrato o acudir a tribunal para exigir cumplimiento de obligaciones de mantenimiento al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -177,15 +113,7 @@
       "type": 0
     },
     {
-      "id": 23,
-      "key": "El ARRENDATARIO CCF_ART2416_REMEDIOS_INCUMPLIMIENTO_REPARACIONES al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2416_REMEDIOS_INCUMPLIMIENTO_REPARACIONES",
-      "type": 0
-    },
-    {
-      "id": 24,
+      "id": 15,
       "key": "El ARRENDADOR abstenerse de interferir con el uso del sistema solar salvo por mantenimientos urgentes notificados con 24 horas de anticipación al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -193,15 +121,7 @@
       "type": 0
     },
     {
-      "id": 25,
-      "key": "El ARRENDADOR CCF_ART2412_NO_ESTORBAR_USO al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2412_NO_ESTORBAR_USO",
-      "type": 0
-    },
-    {
-      "id": 26,
+      "id": 16,
       "key": "El ARRENDADOR garantizar el uso pacífico y eficiente del sistema solar durante los 20 años de vigencia del contrato al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -209,15 +129,7 @@
       "type": 0
     },
     {
-      "id": 27,
-      "key": "El ARRENDADOR CCF_ART2412_GARANTIZAR_USO_PACIFICO al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2412_GARANTIZAR_USO_PACIFICO",
-      "type": 0
-    },
-    {
-      "id": 28,
+      "id": 17,
       "key": "El ARRENDADOR responder por daños derivados de defectos de fabricación o instalación no detectables en la entrega del sistema al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -225,15 +137,7 @@
       "type": 0
     },
     {
-      "id": 29,
-      "key": "El ARRENDADOR CCF_ART2412_RESPONSABILIDAD_VICIOS_OCULTOS al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2412_RESPONSABILIDAD_VICIOS_OCULTOS",
-      "type": 0
-    },
-    {
-      "id": 30,
+      "id": 18,
       "key": "El ARRENDATARIO utilizar el sistema solar únicamente para generación de energía eléctrica para autoconsumo y venta de excedentes al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -241,15 +145,7 @@
       "type": 0
     },
     {
-      "id": 31,
-      "key": "El ARRENDATARIO CCF_ART2425_USO_CONFORME_DESTINO al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2425_USO_CONFORME_DESTINO",
-      "type": 0
-    },
-    {
-      "id": 32,
+      "id": 19,
       "key": "El ARRENDATARIO responder de perjuicios al sistema solar por culpa negligencia propia de familiares o terceros autorizados al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -257,15 +153,7 @@
       "type": 0
     },
     {
-      "id": 33,
-      "key": "El ARRENDATARIO CCF_ART2425_RESPONSABILIDAD_PERJUICIOS al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2425_RESPONSABILIDAD_PERJUICIOS",
-      "type": 0
-    },
-    {
-      "id": 34,
+      "id": 20,
       "key": "El ARRENDADOR vender energía excedente generada por el sistema a Suministradores de Servicios Básicos al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -273,15 +161,15 @@
       "type": 0
     },
     {
-      "id": 35,
-      "key": "El ARRENDADOR LIE_ART21_CONTRATOS_GENERADORES_EXENTOS_BASICOS y energia_excedente_generada al ARRENDATARIO",
+      "id": 21,
+      "key": "El ARRENDADOR energia_excedente_generada al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "LIE_ART21_CONTRATOS_GENERADORES_EXENTOS_BASICOS y energia_excedente_generada",
+      "description": "energia_excedente_generada",
       "type": 0
     },
     {
-      "id": 36,
+      "id": 22,
       "key": "El ARRENDADOR compartir 30 de los ingresos por venta de energía excedente con el arrendatario al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -289,7 +177,7 @@
       "type": 0
     },
     {
-      "id": 37,
+      "id": 23,
       "key": "El ARRENDATARIO ejercer opción de compra del sistema solar por 180000.00 MXN después de 36 meses al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -297,7 +185,7 @@
       "type": 0
     },
     {
-      "id": 38,
+      "id": 24,
       "key": "El ARRENDATARIO cumplimiento_36_meses_renta al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -305,7 +193,7 @@
       "type": 0
     },
     {
-      "id": 39,
+      "id": 25,
       "key": "El ARRENDADOR cumplir con todos los requisitos regulatorios para Generadores Exentos y Contratos de Cobertura al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -313,15 +201,7 @@
       "type": 0
     },
     {
-      "id": 40,
-      "key": "El ARRENDADOR LIE_ART52_CONTRATOS_COBERTURA_OBLIGATORIOS al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "LIE_ART52_CONTRATOS_COBERTURA_OBLIGATORIOS",
-      "type": 0
-    },
-    {
-      "id": 41,
+      "id": 26,
       "key": "El ARRENDADOR mantener seguro contra daños robo y responsabilidad civil del sistema solar al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -329,7 +209,7 @@
       "type": 0
     },
     {
-      "id": 42,
+      "id": 27,
       "key": "El ARRENDADOR limitar la duración del arrendamiento a máximo 20 años conforme a legislación para equipos industriales al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -337,15 +217,7 @@
       "type": 0
     },
     {
-      "id": 43,
-      "key": "El ARRENDADOR CCF_ART2398_LIMITE_INDUSTRIA al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2398_LIMITE_INDUSTRIA",
-      "type": 0
-    },
-    {
-      "id": 44,
+      "id": 28,
       "key": "El ARRENDATARIO limitar la duración del arrendamiento a máximo 20 años conforme a legislación para equipos industriales al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -353,15 +225,7 @@
       "type": 0
     },
     {
-      "id": 45,
-      "key": "El ARRENDATARIO CCF_ART2398_LIMITE_INDUSTRIA al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2398_LIMITE_INDUSTRIA",
-      "type": 0
-    },
-    {
-      "id": 46,
+      "id": 29,
       "key": "El ARRENDADOR terminar automáticamente el contrato el día 21 de junio de 2044 al cumplirse el plazo de 20 años al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -369,15 +233,7 @@
       "type": 0
     },
     {
-      "id": 47,
-      "key": "El ARRENDADOR CCF_ART2483_TERMINACION_PLAZO_CUMPLIDO y CCF_ART2484_TERMINACION_TIEMPO_DETERMINADO al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2483_TERMINACION_PLAZO_CUMPLIDO y CCF_ART2484_TERMINACION_TIEMPO_DETERMINADO",
-      "type": 0
-    },
-    {
-      "id": 48,
+      "id": 30,
       "key": "El ARRENDATARIO terminar automáticamente el contrato el día 21 de junio de 2044 al cumplirse el plazo de 20 años al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -385,15 +241,7 @@
       "type": 0
     },
     {
-      "id": 49,
-      "key": "El ARRENDATARIO CCF_ART2483_TERMINACION_PLAZO_CUMPLIDO y CCF_ART2484_TERMINACION_TIEMPO_DETERMINADO al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2483_TERMINACION_PLAZO_CUMPLIDO y CCF_ART2484_TERMINACION_TIEMPO_DETERMINADO",
-      "type": 0
-    },
-    {
-      "id": 50,
+      "id": 31,
       "key": "El ARRENDADOR terminar el contrato por acuerdo mutuo por escrito con 90 días de anticipación al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -401,15 +249,7 @@
       "type": 0
     },
     {
-      "id": 51,
-      "key": "El ARRENDADOR CCF_ART2483_TERMINACION_CONVENIO_EXPRESO al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2483_TERMINACION_CONVENIO_EXPRESO",
-      "type": 0
-    },
-    {
-      "id": 52,
+      "id": 32,
       "key": "El ARRENDATARIO terminar el contrato por acuerdo mutuo por escrito con 90 días de anticipación al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -417,15 +257,7 @@
       "type": 0
     },
     {
-      "id": 53,
-      "key": "El ARRENDATARIO CCF_ART2483_TERMINACION_CONVENIO_EXPRESO al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2483_TERMINACION_CONVENIO_EXPRESO",
-      "type": 0
-    },
-    {
-      "id": 54,
+      "id": 33,
       "key": "El ARRENDADOR exigir rescisión del contrato por falta de pago de renta por más de tres meses consecutivos al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -433,7 +265,15 @@
       "type": 0
     },
     {
-      "id": 55,
+      "id": 34,
+      "key": "El ARRENDADOR incumplimiento_pago_tres_meses al ARRENDATARIO",
+      "subject1": "ARRENDADOR",
+      "subject2": "ARRENDATARIO",
+      "description": "incumplimiento_pago_tres_meses",
+      "type": 0
+    },
+    {
+      "id": 35,
       "key": "El ARRENDADOR exigir rescisión por usar el sistema solar para fines distintos a generación para autoconsumo y venta autorizada de excedentes al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -441,15 +281,15 @@
       "type": 0
     },
     {
-      "id": 56,
-      "key": "El ARRENDADOR CCF_ART2489_RESCISION_USO_CONTRARIO y uso_sistema_fuera_autoconsumo al ARRENDATARIO",
+      "id": 36,
+      "key": "El ARRENDADOR uso_sistema_fuera_autoconsumo al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2489_RESCISION_USO_CONTRARIO y uso_sistema_fuera_autoconsumo",
+      "description": "uso_sistema_fuera_autoconsumo",
       "type": 0
     },
     {
-      "id": 57,
+      "id": 37,
       "key": "El ARRENDADOR exigir rescisión por daños graves al sistema solar imputables al arrendatario sus familiares o terceros autorizados al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -457,15 +297,15 @@
       "type": 0
     },
     {
-      "id": 58,
-      "key": "El ARRENDADOR CCF_ART2489_RESCISION_DAÑOS_GRAVES y daños_graves_sistema_solar al ARRENDATARIO",
+      "id": 38,
+      "key": "El ARRENDADOR daños_graves_sistema_solar al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2489_RESCISION_DAÑOS_GRAVES y daños_graves_sistema_solar",
+      "description": "daños_graves_sistema_solar",
       "type": 0
     },
     {
-      "id": 59,
+      "id": 39,
       "key": "El ARRENDADOR exigir rescisión por modificar configuración conexiones o componentes del sistema sin consentimiento expreso por escrito al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -473,15 +313,15 @@
       "type": 0
     },
     {
-      "id": 60,
-      "key": "El ARRENDADOR CCF_ART2489_RESCISION_VARIACION_FORMA y modificacion_sistema_sin_autorizacion al ARRENDATARIO",
+      "id": 40,
+      "key": "El ARRENDADOR modificacion_sistema_sin_autorizacion al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2489_RESCISION_VARIACION_FORMA y modificacion_sistema_sin_autorizacion",
+      "description": "modificacion_sistema_sin_autorizacion",
       "type": 0
     },
     {
-      "id": 61,
+      "id": 41,
       "key": "El ARRENDATARIO exigir rescisión por incumplimiento persistente de obligaciones de mantenimiento y conservación del sistema al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -489,15 +329,15 @@
       "type": 0
     },
     {
-      "id": 62,
-      "key": "El ARRENDATARIO CCF_ART2490_RESCISION_INCUMPLIMIENTO_CONSERVACION y incumplimiento_mantenimiento_sistema al ARRENDADOR",
+      "id": 42,
+      "key": "El ARRENDATARIO incumplimiento_mantenimiento_sistema al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
-      "description": "CCF_ART2490_RESCISION_INCUMPLIMIENTO_CONSERVACION y incumplimiento_mantenimiento_sistema",
+      "description": "incumplimiento_mantenimiento_sistema",
       "type": 0
     },
     {
-      "id": 63,
+      "id": 43,
       "key": "El ARRENDATARIO exigir rescisión por pérdida total o reducción superior al 50 en capacidad de generación por causas no imputables al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -505,15 +345,15 @@
       "type": 0
     },
     {
-      "id": 64,
-      "key": "El ARRENDATARIO CCF_ART2490_RESCISION_PERDIDA_COSA y perdida_total_parcial_sistema al ARRENDADOR",
+      "id": 44,
+      "key": "El ARRENDATARIO perdida_total_parcial_sistema al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
-      "description": "CCF_ART2490_RESCISION_PERDIDA_COSA y perdida_total_parcial_sistema",
+      "description": "perdida_total_parcial_sistema",
       "type": 0
     },
     {
-      "id": 65,
+      "id": 45,
       "key": "El ARRENDATARIO exigir rescisión por defectos de fabricación o instalación no detectables en entrega que impidan funcionamiento normal al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -521,15 +361,15 @@
       "type": 0
     },
     {
-      "id": 66,
-      "key": "El ARRENDATARIO CCF_ART2490_RESCISION_VICIOS_OCULTOS y defectos_fabricacion_instalacion al ARRENDADOR",
+      "id": 46,
+      "key": "El ARRENDATARIO defectos_fabricacion_instalacion al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
-      "description": "CCF_ART2490_RESCISION_VICIOS_OCULTOS y defectos_fabricacion_instalacion",
+      "description": "defectos_fabricacion_instalacion",
       "type": 0
     },
     {
-      "id": 67,
+      "id": 47,
       "key": "El ARRENDADOR mantener vigencia del contrato en caso de enajenación judicial del inmueble salvo que se haya celebrado dentro de 60 días anteriores al embargo al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -537,15 +377,15 @@
       "type": 0
     },
     {
-      "id": 68,
-      "key": "El ARRENDADOR CCF_ART2495_SUBSISTENCIA_ENAJENACION_JUDICIAL y venta_judicial_inmueble al ARRENDATARIO",
+      "id": 48,
+      "key": "El ARRENDADOR venta_judicial_inmueble al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2495_SUBSISTENCIA_ENAJENACION_JUDICIAL y venta_judicial_inmueble",
+      "description": "venta_judicial_inmueble",
       "type": 0
     },
     {
-      "id": 69,
+      "id": 49,
       "key": "El ARRENDATARIO mantener vigencia del contrato en caso de enajenación judicial del inmueble salvo que se haya celebrado dentro de 60 días anteriores al embargo al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -553,15 +393,15 @@
       "type": 0
     },
     {
-      "id": 70,
-      "key": "El ARRENDATARIO CCF_ART2495_SUBSISTENCIA_ENAJENACION_JUDICIAL y venta_judicial_inmueble al ARRENDADOR",
+      "id": 50,
+      "key": "El ARRENDATARIO venta_judicial_inmueble al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
-      "description": "CCF_ART2495_SUBSISTENCIA_ENAJENACION_JUDICIAL y venta_judicial_inmueble",
+      "description": "venta_judicial_inmueble",
       "type": 0
     },
     {
-      "id": 71,
+      "id": 51,
       "key": "El ARRENDADOR terminar el contrato automáticamente por destrucción total del sistema por caso fortuito fuerza mayor o desastres naturales al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -569,15 +409,7 @@
       "type": 0
     },
     {
-      "id": 72,
-      "key": "El ARRENDADOR CCF_ART2483_TERMINACION_PERDIDA_DESTRUCCION al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2483_TERMINACION_PERDIDA_DESTRUCCION",
-      "type": 0
-    },
-    {
-      "id": 73,
+      "id": 52,
       "key": "El ARRENDATARIO terminar el contrato automáticamente por destrucción total del sistema por caso fortuito fuerza mayor o desastres naturales al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -585,15 +417,7 @@
       "type": 0
     },
     {
-      "id": 74,
-      "key": "El ARRENDATARIO CCF_ART2483_TERMINACION_PERDIDA_DESTRUCCION al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2483_TERMINACION_PERDIDA_DESTRUCCION",
-      "type": 0
-    },
-    {
-      "id": 75,
+      "id": 53,
       "key": "El ARRENDATARIO suspender el pago de renta mientras dure impedimento total del uso del sistema por caso fortuito o fuerza mayor al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -601,15 +425,7 @@
       "type": 0
     },
     {
-      "id": 76,
-      "key": "El ARRENDATARIO CCF_ART2431_IMPEDIMENTO_TOTAL_USO al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2431_IMPEDIMENTO_TOTAL_USO",
-      "type": 0
-    },
-    {
-      "id": 77,
+      "id": 54,
       "key": "El ARRENDATARIO solicitar rescisión del contrato si el impedimento total del sistema dura más de dos meses al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -617,15 +433,7 @@
       "type": 0
     },
     {
-      "id": 78,
-      "key": "El ARRENDATARIO CCF_ART2431_RESCISION_IMPEDIMENTO_PROLONGADO al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2431_RESCISION_IMPEDIMENTO_PROLONGADO",
-      "type": 0
-    },
-    {
-      "id": 79,
+      "id": 55,
       "key": "El ARRENDADOR formalizar este contrato por escrito con todas las firmas autógrafas de las partes al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -633,15 +441,7 @@
       "type": 0
     },
     {
-      "id": 80,
-      "key": "El ARRENDADOR CCF_ART2406_FORMALIDAD_ESCRITA al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2406_FORMALIDAD_ESCRITA",
-      "type": 0
-    },
-    {
-      "id": 81,
+      "id": 56,
       "key": "El ARRENDADOR mantener vigencia del contrato sin rescisión por muerte de cualquiera de las partes transfiriendo obligaciones a herederos al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -649,15 +449,7 @@
       "type": 0
     },
     {
-      "id": 82,
-      "key": "El ARRENDADOR CCF_ART2408_SUPERVIVENCIA_MUERTE al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2408_SUPERVIVENCIA_MUERTE",
-      "type": 0
-    },
-    {
-      "id": 83,
+      "id": 57,
       "key": "El ARRENDATARIO mantener vigencia del contrato sin rescisión por muerte de cualquiera de las partes transfiriendo obligaciones a herederos al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -665,15 +457,7 @@
       "type": 0
     },
     {
-      "id": 84,
-      "key": "El ARRENDATARIO CCF_ART2408_SUPERVIVENCIA_MUERTE al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2408_SUPERVIVENCIA_MUERTE",
-      "type": 0
-    },
-    {
-      "id": 85,
+      "id": 58,
       "key": "El ARRENDADOR mantener subsistencia del contrato en caso de venta del inmueble donde está instalado el sistema al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -681,15 +465,7 @@
       "type": 0
     },
     {
-      "id": 86,
-      "key": "El ARRENDADOR CCF_ART2409_TRANSMISION_PROPIEDAD al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2409_TRANSMISION_PROPIEDAD",
-      "type": 0
-    },
-    {
-      "id": 87,
+      "id": 59,
       "key": "El ARRENDATARIO mantener subsistencia del contrato en caso de venta del inmueble donde está instalado el sistema al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -697,15 +473,7 @@
       "type": 0
     },
     {
-      "id": 88,
-      "key": "El ARRENDATARIO CCF_ART2409_TRANSMISION_PROPIEDAD al ARRENDADOR",
-      "subject1": "ARRENDATARIO",
-      "subject2": "ARRENDADOR",
-      "description": "CCF_ART2409_TRANSMISION_PROPIEDAD",
-      "type": 0
-    },
-    {
-      "id": 89,
+      "id": 60,
       "key": "El ARRENDATARIO autorizar y obligarse a pagar mejoras estructurales del techo necesarias para soporte del sistema solar al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -713,15 +481,15 @@
       "type": 0
     },
     {
-      "id": 90,
-      "key": "El ARRENDATARIO CCF_ART2423_MEJORAS_AUTORIZADAS y mejoras_estructura_techo al ARRENDADOR",
+      "id": 61,
+      "key": "El ARRENDATARIO mejoras_estructura_techo al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
-      "description": "CCF_ART2423_MEJORAS_AUTORIZADAS y mejoras_estructura_techo",
+      "description": "mejoras_estructura_techo",
       "type": 0
     },
     {
-      "id": 91,
+      "id": 62,
       "key": "El ARRENDADOR pagar mejoras útiles realizadas para el sistema solar si rescinde el contrato por su culpa no obstante cualquier estipulación contraria al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -729,15 +497,7 @@
       "type": 0
     },
     {
-      "id": 92,
-      "key": "El ARRENDADOR CCF_ART2423_MEJORAS_UTILES_RESCISION y CCF_ART2424_PAGO_OBLIGATORIO_MEJORAS al ARRENDATARIO",
-      "subject1": "ARRENDADOR",
-      "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2423_MEJORAS_UTILES_RESCISION y CCF_ART2424_PAGO_OBLIGATORIO_MEJORAS",
-      "type": 0
-    },
-    {
-      "id": 93,
+      "id": 63,
       "key": "El ARRENDADOR compensar inversión no amortizada en mejoras si termina contrato antes de que arrendatario recupere gastos mediante uso del sistema al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -745,15 +505,15 @@
       "type": 0
     },
     {
-      "id": 94,
-      "key": "El ARRENDADOR CCF_ART2423_MEJORAS_TIEMPO_INDETERMINADO y terminacion_antes_amortizacion al ARRENDATARIO",
+      "id": 64,
+      "key": "El ARRENDADOR terminacion_antes_amortizacion al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
-      "description": "CCF_ART2423_MEJORAS_TIEMPO_INDETERMINADO y terminacion_antes_amortizacion",
+      "description": "terminacion_antes_amortizacion",
       "type": 0
     },
     {
-      "id": 95,
+      "id": 65,
       "key": "El ARRENDATARIO permitir desmontaje y retiro del sistema solar pagando renta hasta el día efectivo de retiro al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -761,15 +521,15 @@
       "type": 0
     },
     {
-      "id": 96,
-      "key": "El ARRENDATARIO CCF_ART2429_RENTA_HASTA_ENTREGA y terminacion_contrato al ARRENDADOR",
+      "id": 66,
+      "key": "El ARRENDATARIO terminacion_contrato al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
-      "description": "CCF_ART2429_RENTA_HASTA_ENTREGA y terminacion_contrato",
+      "description": "terminacion_contrato",
       "type": 0
     },
     {
-      "id": 97,
+      "id": 67,
       "key": "El ARRENDATARIO ser preferido en igualdad de condiciones si el arrendador decide vender el sistema a terceros al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -777,7 +537,7 @@
       "type": 0
     },
     {
-      "id": 98,
+      "id": 68,
       "key": "El ARRENDATARIO arrendamiento_mas_cinco_años y mejoras_importancia al ARRENDADOR",
       "subject1": "ARRENDATARIO",
       "subject2": "ARRENDADOR",
@@ -785,7 +545,7 @@
       "type": 0
     },
     {
-      "id": 99,
+      "id": 69,
       "key": "El ARRENDADOR obligarse recíprocamente una parte a conceder uso o goce temporal de una cosa y otra a pagar precio cierto al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -793,7 +553,7 @@
       "type": 0
     },
     {
-      "id": 100,
+      "id": 70,
       "key": "El ARRENDADOR acuerdo_reciproco_partes al ARRENDATARIO",
       "subject1": "ARRENDADOR",
       "subject2": "ARRENDATARIO",
@@ -817,296 +577,296 @@
     {
       "key": "norm3",
       "condition_id1": 1,
-      "condition_id2": 7,
+      "condition_id2": -1,
       "consequence_id": 6
     },
     {
       "key": "norm4",
       "condition_id1": 1,
-      "condition_id2": 9,
-      "consequence_id": 8
+      "condition_id2": 4,
+      "consequence_id": 7
     },
     {
       "key": "norm5",
       "condition_id1": 1,
-      "condition_id2": 11,
-      "consequence_id": 10
+      "condition_id2": -1,
+      "consequence_id": 8
     },
     {
       "key": "norm6",
       "condition_id1": 1,
-      "condition_id2": 13,
-      "consequence_id": 12
+      "condition_id2": 4,
+      "consequence_id": 9
     },
     {
       "key": "norm7",
       "condition_id1": 1,
-      "condition_id2": 15,
-      "consequence_id": 14
+      "condition_id2": -1,
+      "consequence_id": 10
     },
     {
       "key": "norm8",
       "condition_id1": 1,
-      "condition_id2": 17,
-      "consequence_id": 16
+      "condition_id2": -1,
+      "consequence_id": 11
     },
     {
       "key": "norm9",
       "condition_id1": 1,
-      "condition_id2": 19,
-      "consequence_id": 18
+      "condition_id2": 4,
+      "consequence_id": 12
     },
     {
       "key": "norm10",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 13
+    },
+    {
+      "key": "norm11",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 14
+    },
+    {
+      "key": "norm12",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 15
+    },
+    {
+      "key": "norm13",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 16
+    },
+    {
+      "key": "norm14",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 17
+    },
+    {
+      "key": "norm15",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 18
+    },
+    {
+      "key": "norm16",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 19
+    },
+    {
+      "key": "norm17",
       "condition_id1": 1,
       "condition_id2": 21,
       "consequence_id": 20
     },
     {
-      "key": "norm11",
-      "condition_id1": 1,
-      "condition_id2": 23,
-      "consequence_id": 22
-    },
-    {
-      "key": "norm12",
-      "condition_id1": 1,
-      "condition_id2": 25,
-      "consequence_id": 24
-    },
-    {
-      "key": "norm13",
-      "condition_id1": 1,
-      "condition_id2": 27,
-      "consequence_id": 26
-    },
-    {
-      "key": "norm14",
-      "condition_id1": 1,
-      "condition_id2": 29,
-      "consequence_id": 28
-    },
-    {
-      "key": "norm15",
-      "condition_id1": 1,
-      "condition_id2": 31,
-      "consequence_id": 30
-    },
-    {
-      "key": "norm16",
-      "condition_id1": 1,
-      "condition_id2": 33,
-      "consequence_id": 32
-    },
-    {
-      "key": "norm17",
-      "condition_id1": 1,
-      "condition_id2": 35,
-      "consequence_id": 34
-    },
-    {
       "key": "norm18",
       "condition_id1": 1,
-      "condition_id2": 34,
-      "consequence_id": 36
+      "condition_id2": 20,
+      "consequence_id": 22
     },
     {
       "key": "norm19",
       "condition_id1": 1,
-      "condition_id2": 38,
-      "consequence_id": 37
+      "condition_id2": 24,
+      "consequence_id": 23
     },
     {
       "key": "norm20",
       "condition_id1": 1,
-      "condition_id2": 40,
-      "consequence_id": 39
+      "condition_id2": -1,
+      "consequence_id": 25
     },
     {
       "key": "norm21",
       "condition_id1": 1,
       "condition_id2": 4,
-      "consequence_id": 41
+      "consequence_id": 26
     },
     {
       "key": "norm22",
       "condition_id1": 1,
-      "condition_id2": 43,
-      "consequence_id": 42
+      "condition_id2": -1,
+      "consequence_id": 27
     },
     {
       "key": "norm23",
       "condition_id1": 1,
-      "condition_id2": 43,
-      "consequence_id": 42
+      "condition_id2": -1,
+      "consequence_id": 27
     },
     {
       "key": "norm24",
       "condition_id1": 1,
-      "condition_id2": 47,
-      "consequence_id": 46
+      "condition_id2": -1,
+      "consequence_id": 29
     },
     {
       "key": "norm25",
       "condition_id1": 1,
-      "condition_id2": 47,
-      "consequence_id": 46
+      "condition_id2": -1,
+      "consequence_id": 29
     },
     {
       "key": "norm26",
       "condition_id1": 1,
-      "condition_id2": 51,
-      "consequence_id": 50
+      "condition_id2": -1,
+      "consequence_id": 31
     },
     {
       "key": "norm27",
       "condition_id1": 1,
-      "condition_id2": 51,
-      "consequence_id": 50
+      "condition_id2": -1,
+      "consequence_id": 31
     },
     {
       "key": "norm28",
       "condition_id1": 1,
-      "condition_id2": 2,
-      "consequence_id": 54
+      "condition_id2": 34,
+      "consequence_id": 33
     },
     {
       "key": "norm29",
       "condition_id1": 1,
-      "condition_id2": 56,
-      "consequence_id": 55
+      "condition_id2": 36,
+      "consequence_id": 35
     },
     {
       "key": "norm30",
       "condition_id1": 1,
-      "condition_id2": 58,
-      "consequence_id": 57
+      "condition_id2": 38,
+      "consequence_id": 37
     },
     {
       "key": "norm31",
       "condition_id1": 1,
-      "condition_id2": 60,
-      "consequence_id": 59
+      "condition_id2": 40,
+      "consequence_id": 39
     },
     {
       "key": "norm32",
       "condition_id1": 1,
-      "condition_id2": 62,
-      "consequence_id": 61
+      "condition_id2": 42,
+      "consequence_id": 41
     },
     {
       "key": "norm33",
+      "condition_id1": 1,
+      "condition_id2": 44,
+      "consequence_id": 43
+    },
+    {
+      "key": "norm34",
+      "condition_id1": 1,
+      "condition_id2": 46,
+      "consequence_id": 45
+    },
+    {
+      "key": "norm35",
+      "condition_id1": 1,
+      "condition_id2": 48,
+      "consequence_id": 47
+    },
+    {
+      "key": "norm36",
+      "condition_id1": 1,
+      "condition_id2": 48,
+      "consequence_id": 47
+    },
+    {
+      "key": "norm37",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 51
+    },
+    {
+      "key": "norm38",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 51
+    },
+    {
+      "key": "norm39",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 53
+    },
+    {
+      "key": "norm40",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 54
+    },
+    {
+      "key": "norm41",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 55
+    },
+    {
+      "key": "norm42",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 56
+    },
+    {
+      "key": "norm43",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 56
+    },
+    {
+      "key": "norm44",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 58
+    },
+    {
+      "key": "norm45",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 58
+    },
+    {
+      "key": "norm46",
+      "condition_id1": 1,
+      "condition_id2": 61,
+      "consequence_id": 60
+    },
+    {
+      "key": "norm47",
+      "condition_id1": 1,
+      "condition_id2": -1,
+      "consequence_id": 62
+    },
+    {
+      "key": "norm48",
       "condition_id1": 1,
       "condition_id2": 64,
       "consequence_id": 63
     },
     {
-      "key": "norm34",
+      "key": "norm49",
       "condition_id1": 1,
       "condition_id2": 66,
       "consequence_id": 65
     },
     {
-      "key": "norm35",
-      "condition_id1": 1,
-      "condition_id2": 68,
-      "consequence_id": 67
-    },
-    {
-      "key": "norm36",
-      "condition_id1": 1,
-      "condition_id2": 68,
-      "consequence_id": 67
-    },
-    {
-      "key": "norm37",
-      "condition_id1": 1,
-      "condition_id2": 72,
-      "consequence_id": 71
-    },
-    {
-      "key": "norm38",
-      "condition_id1": 1,
-      "condition_id2": 72,
-      "consequence_id": 71
-    },
-    {
-      "key": "norm39",
-      "condition_id1": 1,
-      "condition_id2": 76,
-      "consequence_id": 75
-    },
-    {
-      "key": "norm40",
-      "condition_id1": 1,
-      "condition_id2": 78,
-      "consequence_id": 77
-    },
-    {
-      "key": "norm41",
-      "condition_id1": 1,
-      "condition_id2": 80,
-      "consequence_id": 79
-    },
-    {
-      "key": "norm42",
-      "condition_id1": 1,
-      "condition_id2": 82,
-      "consequence_id": 81
-    },
-    {
-      "key": "norm43",
-      "condition_id1": 1,
-      "condition_id2": 82,
-      "consequence_id": 81
-    },
-    {
-      "key": "norm44",
-      "condition_id1": 1,
-      "condition_id2": 86,
-      "consequence_id": 85
-    },
-    {
-      "key": "norm45",
-      "condition_id1": 1,
-      "condition_id2": 86,
-      "consequence_id": 85
-    },
-    {
-      "key": "norm46",
-      "condition_id1": 1,
-      "condition_id2": 90,
-      "consequence_id": 89
-    },
-    {
-      "key": "norm47",
-      "condition_id1": 1,
-      "condition_id2": 92,
-      "consequence_id": 91
-    },
-    {
-      "key": "norm48",
-      "condition_id1": 1,
-      "condition_id2": 94,
-      "consequence_id": 93
-    },
-    {
-      "key": "norm49",
-      "condition_id1": 1,
-      "condition_id2": 96,
-      "consequence_id": 95
-    },
-    {
       "key": "norm50",
       "condition_id1": 1,
-      "condition_id2": 98,
-      "consequence_id": 97
+      "condition_id2": 68,
+      "consequence_id": 67
     },
     {
       "key": "norm51",
       "condition_id1": 1,
-      "condition_id2": 100,
-      "consequence_id": 99
+      "condition_id2": 70,
+      "consequence_id": 69
     }
   ],
   "matrices": [
@@ -1170,31 +930,16 @@
     },
     {
       "key": "norm3",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -1228,31 +973,16 @@
     },
     {
       "key": "norm5",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -1286,60 +1016,30 @@
     },
     {
       "key": "norm7",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm8",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -1373,205 +1073,100 @@
     },
     {
       "key": "norm10",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm11",
-      "rows": 7,
-      "cols": 3,
-      "type": 16,
+      "rows": 3,
+      "cols": 2,
+      "type": 0,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm12",
-      "rows": 7,
-      "cols": 3,
-      "type": 18,
+      "rows": 3,
+      "cols": 2,
+      "type": 2,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-        1,
-        0,
-        0,
-        1,
-        1,
         1,
         0,
         0,
         1,
         0,
-        1,
-        1,
-        1,
         0
       ]
     },
     {
       "key": "norm13",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm14",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm15",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm16",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -1663,31 +1258,16 @@
     },
     {
       "key": "norm20",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -1721,176 +1301,86 @@
     },
     {
       "key": "norm22",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm23",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm24",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm25",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm26",
-      "rows": 7,
-      "cols": 3,
-      "type": 16,
+      "rows": 3,
+      "cols": 2,
+      "type": 0,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm27",
-      "rows": 7,
-      "cols": 3,
-      "type": 16,
+      "rows": 3,
+      "cols": 2,
+      "type": 0,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -2156,263 +1646,128 @@
     },
     {
       "key": "norm37",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm38",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm39",
-      "rows": 7,
-      "cols": 3,
-      "type": 16,
+      "rows": 3,
+      "cols": 2,
+      "type": 0,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm40",
-      "rows": 7,
-      "cols": 3,
-      "type": 16,
+      "rows": 3,
+      "cols": 2,
+      "type": 0,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm41",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm42",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm43",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm44",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
       "key": "norm45",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
@@ -2446,31 +1801,16 @@
     },
     {
       "key": "norm47",
-      "rows": 7,
-      "cols": 3,
-      "type": 17,
+      "rows": 3,
+      "cols": 2,
+      "type": 1,
       "data": [
-        0,
-        0,
-        0,
-        0,
-        0,
+        1,
         1,
         0,
         1,
         0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1
+        0
       ]
     },
     {
