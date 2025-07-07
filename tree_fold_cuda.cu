@@ -637,85 +637,6 @@ int computeThreshold(const CudaSet& setA, const CudaSet& setB) {
     }
 }
 
-// CPU fallback for extremely large problem sizes
-CudaSet processPairCPU(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose) {
-    // Copy data to host
-    HostSet hostSetA = copyDeviceToHost(setA);
-    HostSet hostSetB = copyDeviceToHost(setB);
-    
-    // Process combinations on CPU with sampling
-    std::vector<std::vector<int>> validCombinations;
-    
-    // For extremely large problems, consider sampling
-    bool useSampling = (hostSetA.vectors.size() * hostSetB.vectors.size() > 10000000);
-    int stride = useSampling ? 10 : 1; // Process every 10th combination if sampling
-    
-    int processedCount = 0;
-    int validCount = 0;
-    
-    for (int idxA = 0; idxA < hostSetA.vectors.size(); idxA++) {
-        for (int idxB = 0; idxB < hostSetB.vectors.size(); idxB += stride) {
-            // Merge vectors
-            std::vector<int> merged;
-            merged.insert(merged.end(), hostSetA.vectors[idxA].begin(), hostSetA.vectors[idxA].end());
-            merged.insert(merged.end(), hostSetB.vectors[idxB].begin(), hostSetB.vectors[idxB].end());
-            
-            // Get unique elements
-            std::set<int> uniqueElements(merged.begin(), merged.end());
-            
-            // Apply threshold filter
-            bool isValid = (threshold == 0 || uniqueElements.size() <= threshold);
-            
-            if (isValid) {
-                validCombinations.push_back(std::vector<int>(uniqueElements.begin(), uniqueElements.end()));
-                validCount++;
-            }
-            
-            processedCount++;
-            if (verbose && processedCount % 1000000 == 0) {
-                printf("    Processed %d combinations, found %d valid...\n", processedCount, validCount);
-            }
-        }
-    }
-    
-    // Remove duplicates
-    std::vector<std::vector<int>> uniqueValidCombinations;
-    
-    for (const auto& combination : validCombinations) {
-        bool isDuplicate = false;
-        
-        for (const auto& existing : uniqueValidCombinations) {
-            if (combination.size() == existing.size()) {
-                std::set<int> combinationSet(combination.begin(), combination.end());
-                std::set<int> existingSet(existing.begin(), existing.end());
-                
-                if (combinationSet == existingSet) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-        }
-        
-        if (!isDuplicate) {
-            uniqueValidCombinations.push_back(combination);
-        }
-    }
-    
-    if (verbose) {
-        printf("  CPU processing produced %zu valid combinations, %zu unique\n", 
-               validCombinations.size(), uniqueValidCombinations.size());
-    }
-    
-    // Create result set
-    HostSet resultHostSet;
-    resultHostSet.vectors = uniqueValidCombinations;
-    
-    CudaSet resultCudaSet;
-    copyHostToDevice(resultHostSet, &resultCudaSet);
-    
-    return resultCudaSet;
-}
-
 
 
 // Helper function to extract a subset from a CudaSet
@@ -777,89 +698,129 @@ CudaSet extractSubset(const CudaSet& set, int startIndex, int count, bool verbos
     return subSet;
 }
 
-void processAndStreamResults(const std::unordered_map<size_t, std::vector<int>>& uniqueResults, 
-                            const char* outputPath, bool verbose) {
-    if (verbose) {
-        printf("  Streaming %zu results directly to output file\n", uniqueResults.size());
-    }
-    
-    // Open output file
-    FILE* outFile = fopen(outputPath, "w");
-    if (!outFile) {
-        fprintf(stderr, "Error: Could not open output file %s\n", outputPath);
+// Flushes a batch of results to disk to keep host RAM usage low.
+// This function processes vectors in batches to avoid creating large temporary sorted lists.
+void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results, 
+                        const char* outputPath, bool& isFirstWrite, bool verbose) {
+    if (results.empty()) {
         return;
     }
-    
-    // Write header
-    fprintf(outFile, "# Final results: %zu vectors\n", uniqueResults.size());
-    
-    // Convert map to vector for batch processing
-    std::vector<std::vector<int>> allVectors;
-    allVectors.reserve(uniqueResults.size());
-    
-    for (const auto& pair : uniqueResults) {
-        allVectors.push_back(pair.second);
-    }
-    
-    // Process vectors in batches to conserve memory
-    const int BATCH_SIZE = 100000;
-    int batches = (allVectors.size() + BATCH_SIZE - 1) / BATCH_SIZE;
-    
-    std::vector<std::vector<int>> batchResults;
-    
-    for (int batch = 0; batch < batches; batch++) {
-        int start = batch * BATCH_SIZE;
-        int end = std::min(start + BATCH_SIZE, (int)allVectors.size());
-        
-        if (verbose && (batch % 10 == 0 || batch == batches-1)) {
-            printf("    Processing batch %d/%d (%.1f%%)\n", 
-                   batch+1, batches, 100.0 * (batch+1) / batches);
-        }
-        
-        // Clear previous batch
-        batchResults.clear();
-        
-        // Extract and filter this batch
-        for (int i = start; i < end; i++) {
-            const std::vector<int>& vec = allVectors[i];
-            
-            // Filter out negative values
-            std::vector<int> positivesOnly;
-            for (int val : vec) {
-                if (val >= 0) {
-                    positivesOnly.push_back(val);
-                }
-            }
-            
-            // Sort the vector
-            std::sort(positivesOnly.begin(), positivesOnly.end());
-            
-            batchResults.push_back(positivesOnly);
-        }
-        
-        // Sort this batch
-        std::sort(batchResults.begin(), batchResults.end());
-        
-        // Write to file
-        for (const auto& vec : batchResults) {
-            fprintf(outFile, "[");
-            for (size_t i = 0; i < vec.size(); i++) {
-                fprintf(outFile, "%d", vec[i]);
-                if (i < vec.size() - 1) fprintf(outFile, ", ");
-            }
-            fprintf(outFile, "]\n");
-        }
-        
-        // Ensure data is written
-        fflush(outFile);
-    }
-    
-    // Close file
-    fclose(outFile);
-    
+
     if (verbose) {
-        printf("  Results successfully written to %s\n", outputPath);
+        printf("    Flushing %zu results to binary file to free RAM...\n", results.size());
     }
+
+    // Open file in binary append mode (or write mode for the first time)
+    FILE* outFile = fopen(outputPath, isFirstWrite ? "wb" : "a");
+    if (!outFile) {
+        fprintf(stderr, "Error: Could not open output file %s for appending\n", outputPath);
+        return;
+    }
+
+    // No header for binary files
+    if (isFirstWrite) {
+        isFirstWrite = false; // Ensure we append on subsequent calls
+    }
+
+    // Process in batches directly from the map to avoid creating a large intermediate vector
+    const int BATCH_SIZE = 50000;
+    std::vector<std::vector<int>> batchVectors;
+    batchVectors.reserve(BATCH_SIZE);
+
+    for (const auto& pair : results) {
+        // Post-process the vector before adding to batch (filter negatives, sort)
+        std::vector<int> positivesOnly;
+        for (int val : pair.second) {
+            if (val >= 0) {
+                positivesOnly.push_back(val);
+            }
+        }
+        std::sort(positivesOnly.begin(), positivesOnly.end());
+        batchVectors.push_back(positivesOnly);
+
+        // If batch is full, sort it and write it to disk
+        if (batchVectors.size() >= BATCH_SIZE) {
+            std::sort(batchVectors.begin(), batchVectors.end());
+            for (const auto& vec : batchVectors) {
+                int size = vec.size();
+                fwrite(&size, sizeof(int), 1, outFile);
+                fwrite(vec.data(), sizeof(int), size, outFile);
+            }
+            batchVectors.clear(); // Clear for next batch
+        }
+    }
+
+    // Write any remaining vectors in the last batch
+    if (!batchVectors.empty()) {
+        std::sort(batchVectors.begin(), batchVectors.end());
+        for (const auto& vec : batchVectors) {
+            int size = vec.size();
+            fwrite(&size, sizeof(int), 1, outFile);
+            fwrite(vec.data(), sizeof(int), size, outFile);
+        }
+    }
+
+    fclose(outFile);
+
+    // CRITICAL: Clear the map to free host RAM
+    results.clear();
+    if (verbose) {
+        printf("    Flush complete. RAM freed.\n");
+    }
+}
+
+// Loads a chunk of vectors from a binary file into a CudaSet
+CudaSet loadCudaSetChunkFromBinary(const char* filePath, long long& fileOffset, int maxVectorsToLoad, bool verbose) {
+    // Open file in binary read mode
+    FILE* inFile = fopen(filePath, "rb");
+    if (!inFile) {
+        if (verbose) printf("    Warning: Could not open file for chunk loading: %s\n", filePath);
+        CudaSet emptySet = {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
+        return emptySet;
+    }
+
+    // Seek to the starting offset
+    fseek(inFile, fileOffset, SEEK_SET);
+
+    HostSet hostSet;
+    hostSet.vectors.reserve(maxVectorsToLoad);
+    int vectorsLoaded = 0;
+
+    while (vectorsLoaded < maxVectorsToLoad) {
+        int vecSize = 0;
+        // Read the size of the next vector
+        size_t elementsRead = fread(&vecSize, sizeof(int), 1, inFile);
+        if (elementsRead == 0) {
+            // End of file
+            break;
+        }
+
+        std::vector<int> tempVec(vecSize);
+        // Read the vector data
+        fread(tempVec.data(), sizeof(int), vecSize, inFile);
+
+        hostSet.vectors.push_back(tempVec);
+        vectorsLoaded++;
+    }
+
+    // Update the file offset for the next call
+    fileOffset = ftell(inFile);
+    fclose(inFile);
+
+    // If no vectors were loaded, return an empty set
+    if (hostSet.vectors.empty()) {
+        CudaSet emptySet = {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
+        return emptySet;
+    }
+
+    if (verbose) {
+        printf("    Loaded chunk of %zu vectors from %s\n", hostSet.vectors.size(), filePath);
+    }
+
+    // Convert the host set to a CudaSet and return
+    CudaSet cudaSet;
+    copyHostToDevice(hostSet, &cudaSet);
+    return cudaSet;
 }
 
 CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose) {
@@ -895,6 +856,8 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
     
     // Maintain a set of unique results with fast lookup
     std::unordered_map<size_t, std::vector<int>> uniqueResults;
+    bool isFirstWrite = true; // For flushing results to disk
+    const size_t FLUSH_THRESHOLD = 1000000; // Flush after 1M results
     
     // Hash function for vectors
     auto hashVector = [](const std::vector<int>& vec) {
@@ -1044,46 +1007,32 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
             freeCudaSet(&tileSetB);
         }
         
+        // After processing a full row of tiles for a given tileA, check if we need to flush RAM
+        if (uniqueResults.size() >= FLUSH_THRESHOLD) {
+            flushResultsToDisk(uniqueResults, "zdd.bin", isFirstWrite, verbose);
+        }
+        
         // Free tile resources
         freeCudaSet(&tileSetA);
     }
     
-
+    // After all tiles are processed, flush any remaining results to disk
+    if (!uniqueResults.empty()) {
+        flushResultsToDisk(uniqueResults, "zdd.bin", isFirstWrite, verbose);
+    }
     
     if (verbose) {
-        printf("  Final result: %zu unique combinations\n", uniqueResults.size());
+        printf("  Tiled processing complete. All results streamed to zdd.bin\n");
     }
     
-    if (uniqueResults.size() > 2000000) { // Reduced from 20M to 2M for safety
-        // Stream results to disk
-        processAndStreamResults(uniqueResults, "zdd.txt", verbose);
-        
-        // Return a dummy small CudaSet that indicates stream processing was used
-        CudaSet dummyResult = allocateCudaSet(1, 1);
-        int* flagData = (int*)malloc(sizeof(int));
-        flagData[0] = -999999; // Special flag indicating results were streamed
-        CHECK_CUDA_ERROR(cudaMemcpy(dummyResult.data, flagData, sizeof(int), cudaMemcpyHostToDevice));
-        free(flagData);
-        
-        return dummyResult;
-    }
+    // Return a dummy CudaSet indicating that results were streamed to disk
+    CudaSet dummyResult = allocateCudaSet(1, 1);
+    int* flagData = (int*)malloc(sizeof(int));
+    flagData[0] = -999999; // Special flag indicating results were streamed
+    CHECK_CUDA_ERROR(cudaMemcpy(dummyResult.data, flagData, sizeof(int), cudaMemcpyHostToDevice));
+    free(flagData);
     
-    // Convert map to result vectors
-    std::vector<std::vector<int>> finalResults;
-    finalResults.reserve(uniqueResults.size());
-    
-    for (const auto& pair : uniqueResults) {
-        finalResults.push_back(pair.second);
-    }
-    // Create result set
-    HostSet resultHostSet;
-    resultHostSet.vectors = finalResults;
-    
-    
-    CudaSet resultCudaSet;
-    copyHostToDevice(resultHostSet, &resultCudaSet);
-    
-    return resultCudaSet;
+    return dummyResult;
 }
 // Process a pair of sets using parallel kernel (maintains exact logic but parallelized)
 // Process a pair of sets using batched approach for large sets
@@ -1420,7 +1369,7 @@ CudaSet treeFoldOperations(const std::vector<CudaSet>& sets, bool verbose) {
     if (firstValue == -999999) {
         if (verbose) {
             printf("Results were too large for memory and were streamed to disk.\n");
-            printf("Check large_result.txt for complete results.\n");
+            printf("Check zdd.bin for complete results.\n");
         }
     }
     
@@ -1710,38 +1659,17 @@ void runTestCases() {
                    processedResults.size());
             
             // Open file for writing
-            FILE* outFile = fopen("zdd.txt", "w");
+            FILE* outFile = fopen("zdd.bin", "wb");
             if (!outFile) {
-                fprintf(stderr, "Error: Could not open zdd.txt for writing\n");
+                fprintf(stderr, "Error: Could not open zdd.bin for writing\n");
             } else {
-                // Write header to file
-                fprintf(outFile, "# Final results: %zu vectors\n", processedResults.size());
-            }
-            
-            for (size_t i = 0; i < processedResults.size(); i++) {
-                // Print to console
-                printf("Result %zu: [", i + 1);
-                for (size_t j = 0; j < processedResults[i].size(); j++) {
-                    printf("%d", processedResults[i][j]);
-                    if (j < processedResults[i].size() - 1) printf(", ");
+                for (const auto& vec : processedResults) {
+                    int size = vec.size();
+                    fwrite(&size, sizeof(int), 1, outFile);
+                    fwrite(vec.data(), sizeof(int), size, outFile);
                 }
-                printf("]\n");
-                
-                // Write to file if open
-                if (outFile) {
-                    fprintf(outFile, "[");
-                    for (size_t j = 0; j < processedResults[i].size(); j++) {
-                        fprintf(outFile, "%d", processedResults[i][j]);
-                        if (j < processedResults[i].size() - 1) fprintf(outFile, ", ");
-                    }
-                    fprintf(outFile, "]\n");
-                }
-            }
-            
-            // Close file if open
-            if (outFile) {
                 fclose(outFile);
-                printf("Results written to zdd.txt\n");
+                printf("Results written to zdd.bin\n");
             }
         }
     } else {
@@ -1752,38 +1680,17 @@ void runTestCases() {
                processedResults.size());
         
         // Open file for writing
-        FILE* outFile = fopen("zdd.txt", "w");
+        FILE* outFile = fopen("zdd.bin", "wb");
         if (!outFile) {
-            fprintf(stderr, "Error: Could not open zdd.txt for writing\n");
+            fprintf(stderr, "Error: Could not open zdd.bin for writing\n");
         } else {
-            // Write header to file
-            fprintf(outFile, "# Final results: %zu vectors\n", processedResults.size());
-        }
-        
-        for (size_t i = 0; i < processedResults.size(); i++) {
-            // Print to console
-            printf("Result %zu: [", i + 1);
-            for (size_t j = 0; j < processedResults[i].size(); j++) {
-                printf("%d", processedResults[i][j]);
-                if (j < processedResults[i].size() - 1) printf(", ");
+            for (const auto& vec : processedResults) {
+                int size = vec.size();
+                fwrite(&size, sizeof(int), 1, outFile);
+                fwrite(vec.data(), sizeof(int), size, outFile);
             }
-            printf("]\n");
-            
-            // Write to file if open
-            if (outFile) {
-                fprintf(outFile, "[");
-                for (size_t j = 0; j < processedResults[i].size(); j++) {
-                    fprintf(outFile, "%d", processedResults[i][j]);
-                    if (j < processedResults[i].size() - 1) fprintf(outFile, ", ");
-                }
-                fprintf(outFile, "]\n");
-            }
-        }
-        
-        // Close file if open
-        if (outFile) {
             fclose(outFile);
-            printf("Results written to zdd.txt\n");
+            printf("Results written to zdd.bin\n");
         }
     }
     
