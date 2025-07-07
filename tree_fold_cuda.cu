@@ -875,7 +875,7 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
     
     // Define tile sizes based on problem dimensions
     int TILE_SIZE_A = 32;
-    int TILE_SIZE_B = 1024;
+    int TILE_SIZE_B = 256;
     
     // Adjust tile sizes if needed
     if (numItemsA > 1000 || numItemsB > 10000) {
@@ -1054,7 +1054,7 @@ CudaSet processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold
         printf("  Final result: %zu unique combinations\n", uniqueResults.size());
     }
     
-    if (uniqueResults.size() > 20000000) {
+    if (uniqueResults.size() > 2000000) { // Reduced from 20M to 2M for safety
         // Stream results to disk
         processAndStreamResults(uniqueResults, "zdd.txt", verbose);
         
@@ -1111,15 +1111,8 @@ CudaSet processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int
         return emptySet;
     }
 
-    // For extremely large combinations, use CPU fallback
+    // For extremely large combinations, use the memory-efficient approach, not CPU fallback
     long long totalCombinations = (long long)numItemsA * (long long)numItemsB;
-    if (totalCombinations > 100000000LL) { // 100 million combinations threshold
-        if (verbose) {
-            printf("    Using CPU fallback for extremely large input (%lld combinations)\n", totalCombinations);
-        }
-        return processPairCPU(setA, setB, threshold, level, verbose);
-    }
-            // For extremely large combinations, use the memory-efficient approach
     if (totalCombinations > 3000000LL) { // 3 million threshold
         return processLargePair(setA, setB, threshold, level, verbose);
     }
