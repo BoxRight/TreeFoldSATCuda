@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cstdint>
 #include <execution>
+#include <zstd.h>
 
 // Error checking macro
 #define CHECK_CUDA_ERROR(call) { \
@@ -35,6 +36,8 @@
 // Configuration parameters
 #define MAX_ELEMENTS_PER_VECTOR 128
 #define BLOCK_SIZE 256
+#define TILE_SIZE_A 512  // Tile size for set A in tiled processing
+#define TILE_SIZE_B 6144 // Tile size for set B in tiled processing
 
 // Absolute value functor for Thrust
 struct AbsoluteFunctor {
@@ -699,8 +702,8 @@ CudaSet extractSubset(const CudaSet& set, int startIndex, int count, bool verbos
     return subSet;
 }
 
-// Flushes a batch of results to disk to keep host RAM usage low.
-// This function processes vectors in batches to avoid creating large temporary sorted lists.
+// Flushes a batch of results to disk to keep host RAM usage low, using Zstandard compression.
+// Each flush operation writes one or more compressed chunks to the file.
 void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results, 
                         const char* outputPath, bool& isFirstWrite, bool verbose) {
     if (results.empty()) {
@@ -708,50 +711,68 @@ void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results,
     }
 
     if (verbose) {
-        printf("    Flushing %zu results to binary file to free RAM...\n", results.size());
+        printf("    Flushing %zu results to compressed binary file to free RAM...\n", results.size());
     }
 
-    // Open file in binary append mode (or write mode for the first time)
     FILE* outFile = fopen(outputPath, isFirstWrite ? "wb" : "ab");
     if (!outFile) {
         fprintf(stderr, "Error: Could not open output file %s for appending\n", outputPath);
         return;
     }
 
-    // No header for binary files
     if (isFirstWrite) {
-        isFirstWrite = false; // Ensure we append on subsequent calls
+        isFirstWrite = false;
     }
 
-    // Process in batches directly from the map to avoid creating a large intermediate vector
     const int BATCH_SIZE = 50000;
     std::vector<std::vector<int>> batchVectors;
     batchVectors.reserve(BATCH_SIZE);
 
-    for (auto& pair : results) {
-        // Move the vector into the batch. No filtering or internal sorting is done here.
-        batchVectors.push_back(std::move(pair.second));
-
-        // If batch is full, sort it lexicographically and write it to disk
-        if (batchVectors.size() >= BATCH_SIZE) {
-            std::sort(std::execution::par, batchVectors.begin(), batchVectors.end());
-            for (const auto& vec : batchVectors) {
-                int size = vec.size();
-                fwrite(&size, sizeof(int), 1, outFile);
-                fwrite(vec.data(), sizeof(int), size, outFile);
-            }
-            batchVectors.clear(); // Clear for next batch
+    auto it = results.begin();
+    while (it != results.end()) {
+        // Collect a batch of vectors
+        for (int i = 0; i < BATCH_SIZE && it != results.end(); ++i) {
+            batchVectors.push_back(std::move(it->second));
+            ++it;
         }
-    }
 
-    // Write any remaining vectors in the last batch
-    if (!batchVectors.empty()) {
+        if (batchVectors.empty()) continue;
+
+        // Sort the batch lexicographically before serialization
         std::sort(std::execution::par, batchVectors.begin(), batchVectors.end());
+
+        // Serialize the batch
+        std::vector<char> serializedBatch;
+        size_t totalElements = 0;
+        for(const auto& vec : batchVectors) totalElements += vec.size();
+        serializedBatch.reserve(sizeof(size_t) + batchVectors.size() * sizeof(int) + totalElements * sizeof(int));
+        
+        size_t numVectorsInBatch = batchVectors.size();
+        serializedBatch.insert(serializedBatch.end(), (char*)&numVectorsInBatch, (char*)&numVectorsInBatch + sizeof(size_t));
+
         for (const auto& vec : batchVectors) {
-            int size = vec.size();
-            fwrite(&size, sizeof(int), 1, outFile);
-            fwrite(vec.data(), sizeof(int), size, outFile);
+            int vecSize = vec.size();
+            serializedBatch.insert(serializedBatch.end(), (char*)&vecSize, (char*)&vecSize + sizeof(int));
+            serializedBatch.insert(serializedBatch.end(), (char*)vec.data(), (char*)vec.data() + vecSize * sizeof(int));
         }
+
+        // Compress the serialized batch
+        size_t const cBuffSize = ZSTD_compressBound(serializedBatch.size());
+        std::vector<char> compressedBatch(cBuffSize);
+        size_t const cSize = ZSTD_compress(compressedBatch.data(), cBuffSize, serializedBatch.data(), serializedBatch.size(), 1);
+        
+        if (ZSTD_isError(cSize)) {
+            fprintf(stderr, "ZSTD compression error: %s\n", ZSTD_getErrorName(cSize));
+            fclose(outFile);
+            return;
+        }
+
+        // Write the compressed chunk to disk: [size][data]
+        uint64_t compressedSize = cSize;
+        fwrite(&compressedSize, sizeof(uint64_t), 1, outFile);
+        fwrite(compressedBatch.data(), 1, compressedSize, outFile);
+
+        batchVectors.clear();
     }
 
     fclose(outFile);
@@ -763,7 +784,7 @@ void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results,
     }
 }
 
-// Loads a chunk of vectors from a binary file into a CudaSet
+// Loads a compressed chunk of vectors from a binary file into a CudaSet
 CudaSet loadCudaSetChunkFromBinary(const char* filePath, long long& fileOffset, int maxVectorsToLoad, bool verbose) {
     // Open file in binary read mode
     FILE* inFile = fopen(filePath, "rb");
@@ -776,25 +797,55 @@ CudaSet loadCudaSetChunkFromBinary(const char* filePath, long long& fileOffset, 
     // Seek to the starting offset
     fseek(inFile, fileOffset, SEEK_SET);
 
+    // Read the size of the next compressed chunk
+    uint64_t compressedSize = 0;
+    size_t elementsRead = fread(&compressedSize, sizeof(uint64_t), 1, inFile);
+    if (elementsRead == 0) {
+        // End of file
+        fclose(inFile);
+        CudaSet emptySet = {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
+        return emptySet;
+    }
+
+    // Read the compressed chunk
+    std::vector<char> compressedChunk(compressedSize);
+    fread(compressedChunk.data(), 1, compressedSize, inFile);
+
+    // Decompress the chunk
+    unsigned long long const rSize = ZSTD_getFrameContentSize(compressedChunk.data(), compressedSize);
+    if (rSize == ZSTD_CONTENTSIZE_ERROR || rSize == ZSTD_CONTENTSIZE_UNKNOWN) {
+        fprintf(stderr, "Error: ZSTD cannot get decompressed size of the frame\n");
+        fclose(inFile);
+        return {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
+    }
+    
+    std::vector<char> decompressedChunk(rSize);
+    size_t const dSize = ZSTD_decompress(decompressedChunk.data(), rSize, compressedChunk.data(), compressedSize);
+
+    if (ZSTD_isError(dSize) || dSize != rSize) {
+        fprintf(stderr, "ZSTD decompression error: %s\n", ZSTD_getErrorName(dSize));
+        fclose(inFile);
+        return {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
+    }
+
+    // Deserialize the vectors from the decompressed chunk
     HostSet hostSet;
-    hostSet.vectors.reserve(maxVectorsToLoad);
-    int vectorsLoaded = 0;
+    char* bufferPtr = decompressedChunk.data();
+    
+    size_t numVectorsInChunk = *(size_t*)bufferPtr;
+    bufferPtr += sizeof(size_t);
+    
+    hostSet.vectors.reserve(numVectorsInChunk);
 
-    while (vectorsLoaded < maxVectorsToLoad) {
-        int vecSize = 0;
-        // Read the size of the next vector
-        size_t elementsRead = fread(&vecSize, sizeof(int), 1, inFile);
-        if (elementsRead == 0) {
-            // End of file
-            break;
-        }
-
+    for (size_t i = 0; i < numVectorsInChunk; ++i) {
+        int vecSize = *(int*)bufferPtr;
+        bufferPtr += sizeof(int);
+        
         std::vector<int> tempVec(vecSize);
-        // Read the vector data
-        fread(tempVec.data(), sizeof(int), vecSize, inFile);
+        memcpy(tempVec.data(), bufferPtr, vecSize * sizeof(int));
+        bufferPtr += vecSize * sizeof(int);
 
-        hostSet.vectors.push_back(tempVec);
-        vectorsLoaded++;
+        hostSet.vectors.push_back(std::move(tempVec));
     }
 
     // Update the file offset for the next call
@@ -808,7 +859,7 @@ CudaSet loadCudaSetChunkFromBinary(const char* filePath, long long& fileOffset, 
     }
 
     if (verbose) {
-        printf("    Loaded chunk of %zu vectors from %s\n", hostSet.vectors.size(), filePath);
+        printf("    Loaded and decompressed chunk of %zu vectors from %s\n", hostSet.vectors.size(), filePath);
     }
 
     // Convert the host set to a CudaSet and return
@@ -829,16 +880,6 @@ ProcessResult processLargePair(const CudaSet& setA, const CudaSet& setB, int thr
         printf("  Processing large pair with tiled approach: Set A (%d items) + Set B (%d items), threshold = %d\n", 
                numItemsA, numItemsB, threshold);
         printf("  Total combinations: %lld - using tiled processing with disk streaming to %s\n", totalCombinations, streamFilePath);
-    }
-    
-    // Define tile sizes based on problem dimensions
-    int TILE_SIZE_A = 32;
-    int TILE_SIZE_B = 256;
-    
-    // Adjust tile sizes if needed
-    if (numItemsA > 1000 || numItemsB > 10000) {
-        TILE_SIZE_A = 16;
-        TILE_SIZE_B = 512;
     }
     
     // Calculate number of tiles
@@ -1110,7 +1151,6 @@ ProcessResult processPair(const CudaSet& setA, const CudaSet& setB, int threshol
 		        for (int j = 0; j < size; j++) {
 		            combination[j] = hostResultData[offset + j];
 		        }
-		        
 		        validCombinations.push_back(combination);
 		        collectedCount++;
 		        
@@ -1319,25 +1359,44 @@ LevelItem processStreamedPair(LevelItem& itemA, LevelItem& itemB, int threshold,
     // Final flush
     flushResultsToDisk(uniqueResults, outStreamPath, isFirstWrite, verbose);
 
-    // Get total items in the new stream
+    // Get total items in the new stream by reading the compressed file correctly
     FILE* f = fopen(outStreamPath, "rb");
-    int totalItems = 0;
+    size_t totalItems = 0;
     if (f) {
         fseek(f, 0, SEEK_END);
         long long fileSize = ftell(f);
         fseek(f, 0, SEEK_SET);
+
         while (ftell(f) < fileSize) {
-            int size;
-            fread(&size, sizeof(int), 1, f);
-            fseek(f, size * sizeof(int), SEEK_CUR);
-            totalItems++;
+            uint64_t compressedSize = 0;
+            size_t elementsRead = fread(&compressedSize, sizeof(uint64_t), 1, f);
+            if (elementsRead == 0 || compressedSize == 0) break;
+
+            // Read the compressed chunk
+            std::vector<char> compressedChunk(compressedSize);
+            size_t dataRead = fread(compressedChunk.data(), 1, compressedSize, f);
+            if(dataRead != compressedSize) break; // Error reading chunk
+
+            // Decompress just the header to find out how many vectors are in the chunk
+            size_t const dBuffSize = sizeof(size_t);
+            char decompressedHeader[dBuffSize];
+            size_t const dSize = ZSTD_decompress(decompressedHeader, dBuffSize, compressedChunk.data(), compressedSize);
+
+            if (!ZSTD_isError(dSize)) {
+                size_t numVectorsInChunk = 0;
+                memcpy(&numVectorsInChunk, decompressedHeader, sizeof(size_t));
+                totalItems += numVectorsInChunk;
+            }
         }
         fclose(f);
+    } else {
+        // If the file doesn't exist, it means flush never wrote anything, so 0 items.
+        totalItems = 0;
     }
     
-    if (verbose) printf("  --> Streamed pair processing complete. Result: %d items in %s\n", totalItems, outStreamPath);
+    if (verbose) printf("  --> Streamed pair processing complete. Result: %zu items in %s\n", totalItems, outStreamPath);
 
-    return { {}, outStreamPath, totalItems, levelItemCounter++, true };
+    return { {}, outStreamPath, (int)totalItems, levelItemCounter++, true };
 }
 
 // Tree fold operations (maintains sequential dependencies but optimizes within each step)
@@ -1375,71 +1434,97 @@ LevelItem treeFoldOperations(const std::vector<CudaSet>& sets, bool verbose) {
         std::vector<LevelItem> nextLevel;
         std::vector<bool> processed(currentLevel.size(), false);
         
-        while (true) {
+        // --- Phase 1: Process all possible in-memory pairs ---
+        bool inMemoryPairFound;
+        do {
+            inMemoryPairFound = false;
             int bestI = -1, bestJ = -1;
             int lowestThreshold = INT_MAX;
 
-            // Check how many items are left to be processed
-            int remainingCount = 0;
-            for(size_t i = 0; i < currentLevel.size(); ++i) {
-                if (!processed[i]) remainingCount++;
-            }
-            if (remainingCount < 2) break;
-
-            // Find the pair with the lowest (most restrictive) threshold
+            // Find the best in-memory pair among all non-processed items
             for (size_t i = 0; i < currentLevel.size(); i++) {
                 if (processed[i]) continue;
                 for (size_t j = i + 1; j < currentLevel.size(); j++) {
                     if (processed[j]) continue;
                     
-                    int threshold = computeThreshold(currentLevel[i], currentLevel[j]);
-                    if (threshold < lowestThreshold) {
-                        lowestThreshold = threshold;
-                        bestI = i;
-                        bestJ = j;
+                    bool willStream = currentLevel[i].isStreamed() || currentLevel[j].isStreamed() ||
+                                      (long long)currentLevel[i].numItems * (long long)currentLevel[j].numItems >= 3000000LL;
+
+                    if (!willStream) {
+                        int threshold = computeThreshold(currentLevel[i], currentLevel[j]);
+                        if (threshold < lowestThreshold) {
+                            lowestThreshold = threshold;
+                            bestI = i;
+                            bestJ = j;
+                        }
                     }
                 }
             }
-            
-            if (bestI == -1) break; // No more pairs to process
-            
+
+            if (bestI != -1) {
+                inMemoryPairFound = true;
+                processed[bestI] = true;
+                processed[bestJ] = true;
+
+                LevelItem& itemA = currentLevel[bestI];
+                LevelItem& itemB = currentLevel[bestJ];
+
+                if (verbose) {
+                    printf("  --> Selected in-memory pair: Set %d (%d items) + Set %d (%d items) with threshold %d\n", 
+                           itemA.id, itemA.numItems, itemB.id, itemB.numItems, lowestThreshold);
+                    printf("      Processing pair in-memory (GPU).\n");
+                }
+
+                ProcessResult res = processPair(itemA.set, itemB.set, lowestThreshold, level, verbose);
+                LevelItem resultItem = { res.set, res.streamPath, res.set.numItems, levelItemCounter++, true };
+                if (!res.streamPath.empty()) {
+                   tempFiles.push_back(res.streamPath);
+                }
+                nextLevel.push_back(resultItem);
+            }
+        } while (inMemoryPairFound);
+
+        // --- Phase 2: Process all remaining items using streaming-optimized strategy ---
+        std::vector<int> remainingIndices;
+        for(size_t i = 0; i < currentLevel.size(); ++i) {
+            if (!processed[i]) {
+                remainingIndices.push_back(i);
+            }
+        }
+
+        if (remainingIndices.size() >= 2) {
             if (verbose) {
-                printf("  --> Selected optimal pair: Set %d (%d items) + Set %d (%d items) with threshold %d\n", 
-                       currentLevel[bestI].id, currentLevel[bestI].numItems, 
-                       currentLevel[bestJ].id, currentLevel[bestJ].numItems,
-                       lowestThreshold);
+                printf("  --> No in-memory pairs left. Applying streaming-optimized pairing to %zu sets.\n", remainingIndices.size());
             }
 
-            processed[bestI] = true;
-            processed[bestJ] = true;
-            
-            LevelItem& itemA = currentLevel[bestI];
-            LevelItem& itemB = currentLevel[bestJ];
-            
-            LevelItem resultItem;
-            
-            // Decide which processing path to take.
-            // If both items are in-memory and their combined size is small, process on GPU directly.
-            // Otherwise, use the robust chunked streaming processor.
-            long long totalCombinations = (long long)itemA.numItems * (long long)itemB.numItems;
-            if (!itemA.isStreamed() && !itemB.isStreamed() && totalCombinations < 3000000LL) {
-                 if (verbose) {
-                    printf("      Processing pair in-memory (GPU).\n");
-                 }
-                 ProcessResult res = processPair(itemA.set, itemB.set, lowestThreshold, level, verbose);
-                 resultItem = { res.set, res.streamPath, res.set.numItems, levelItemCounter++, true };
-                 if (!res.streamPath.empty()) {
-                    tempFiles.push_back(res.streamPath);
-                 }
-            } else {
-                 if (verbose) {
-                    printf("      Processing pair with disk streaming.\n");
-                 }
-                resultItem = processStreamedPair(itemA, itemB, lowestThreshold, level, verbose);
+            std::sort(remainingIndices.begin(), remainingIndices.end(),
+                      [&](int a, int b) { return currentLevel[a].numItems < currentLevel[b].numItems; });
+
+            int i = 0;
+            int j = remainingIndices.size() - 1;
+            while (i < j) {
+                int idxA = remainingIndices[i];
+                int idxB = remainingIndices[j];
+                processed[idxA] = true;
+                processed[idxB] = true;
+
+                LevelItem& itemA = currentLevel[idxA];
+                LevelItem& itemB = currentLevel[idxB];
+
+                int threshold = computeThreshold(itemA, itemB);
+                if (verbose) {
+                    printf("  --> Pairing smallest (%s:%d items) with largest (%s:%d items) for streaming.\n",
+                           itemA.isStreamed() ? "stream" : "mem", itemA.numItems,
+                           itemB.isStreamed() ? "stream" : "mem", itemB.numItems);
+                }
+
+                LevelItem resultItem = processStreamedPair(itemA, itemB, threshold, level, verbose);
                 tempFiles.push_back(resultItem.streamPath);
+                nextLevel.push_back(resultItem);
+
+                i++;
+                j--;
             }
-            
-            nextLevel.push_back(resultItem);
         }
         
         // Handle any remaining odd set by carrying it over to the next level
