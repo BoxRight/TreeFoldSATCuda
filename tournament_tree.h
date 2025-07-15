@@ -8,7 +8,7 @@
 // Constants
 #define MAX_VECTOR_SIZE 127
 #define MAX_THREADS_PER_BLOCK 256
-#define MAX_COMBINATIONS 1024
+#define MAX_RESULTS_PER_BATTLE 8192  // Much larger limit for result storage
 #define MAX_UNION_SIZE 254  // MAX_VECTOR_SIZE * 2
 
 // Data structures
@@ -26,14 +26,7 @@ struct TournamentLevel {
     int8_t* results;      // Flattened results storage
 };
 
-struct TournamentMemory {
-    int8_t* matrix_pool;    // Pre-allocated matrix storage
-    int8_t* result_pool;    // Pre-allocated result storage
-    int* metadata_pool;     // Pre-allocated metadata
-    size_t matrix_pool_size;
-    size_t result_pool_size;
-    size_t metadata_pool_size;
-};
+
 
 // Host functions
 class TournamentTree {
@@ -41,8 +34,8 @@ public:
     TournamentTree();
     ~TournamentTree();
     
-    // Initialize tournament with input matrices
-    bool initialize(const std::vector<std::vector<int8_t>>& input_matrices);
+    // Initialize tournament with input matrices (multi-row format)
+    bool initialize(const std::vector<std::vector<std::vector<int8_t>>>& input_matrices);
     
     // Run the tournament
     bool runTournament();
@@ -50,17 +43,18 @@ public:
     // Get final results
     std::vector<int8_t> getFinalResult();
     
+    // Get all individual union results (multi-row approach)
+    std::vector<std::vector<int8_t>> getAllFinalResults();
+    
     // Cleanup
     void cleanup();
 
 private:
     TournamentLevel* d_tournament_levels;
-    TournamentMemory d_memory;
     int num_levels;
     int num_matrices;
     
     // Helper functions
-    bool allocateMemory();
     bool prepareNextLevel(int level);
     void recycleLevel(int level);
 };
@@ -68,17 +62,20 @@ private:
 // CUDA kernel declarations
 __global__ void tournamentKernel(
     TournamentLevel* levels,
-    int level,
+    int current_level,
+    int next_level,
     int max_combinations
 );
 
 __device__ void processBattle(
-    TournamentLevel level,
+    TournamentLevel& level,
     int battle_idx,
-    int combination_idx
+    int combination_idx,
+    TournamentLevel* next_level,
+    int* global_result_counts
 );
 
-__device__ bool computeSetIntersection(
+__device__ bool isValidForUnion(
     Matrix* m1, int row1,
     Matrix* m2, int row2
 );
@@ -93,6 +90,11 @@ __device__ void storeUnionResult(
 __device__ void storeGlobalResult(
     int8_t* unionSet, 
     int unionSize, 
+    int battle_idx,
+    TournamentLevel* next_level
+);
+
+__device__ void storeEmptyResult(
     int battle_idx,
     TournamentLevel* next_level
 );
