@@ -22,6 +22,8 @@
 #include <cassert>
 #include <cstdint>
 #include <execution>
+#include <functional>
+#include <malloc.h>
 #include <zstd.h>
 
 // Error checking macro
@@ -36,8 +38,29 @@
 // Configuration parameters
 #define MAX_ELEMENTS_PER_VECTOR 128
 #define BLOCK_SIZE 256
-#define TILE_SIZE_A 512  // Tile size for set A in tiled processing
-#define TILE_SIZE_B 6144 // Tile size for set B in tiled processing
+#define TILE_SIZE_A 256  // Tile size for set A in tiled processing
+#define TILE_SIZE_B 3072 // Tile size for set B in tiled processing
+#define RESULTS_FLUSH_THRESHOLD 10000 // In-memory result limit before flushing to disk
+#define CHUNK_SIZE (1024 * 4) // Number of items to load from a stream at a time
+
+// --- Forward Declarations ---
+typedef struct {
+    int8_t* data;         // Flattened array of all elements
+    int* offsets;      // Starting index for each vector/set
+    int* sizes;        // Size of each vector/set
+    int numItems;      // Number of vectors/sets
+    int totalElements; // Total number of elements
+    int8_t* deviceBuffer; // Reusable device buffer for operations
+    int bufferSize;    // Size of the device buffer
+} CudaSet;
+struct LevelItem;
+struct ProcessResult;
+ProcessResult processPair_inMemory(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose);
+void processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose, 
+                     std::unordered_map<size_t, std::vector<int>>& uniqueResults,
+                     std::function<void()> flushCallback = nullptr);
+ProcessResult processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose, bool allowStreaming);
+LevelItem processStreamedPair(LevelItem& itemA, LevelItem& itemB, int threshold, int level, bool verbose);
 
 // Absolute value functor for Thrust
 struct AbsoluteFunctor {
@@ -236,16 +259,7 @@ typedef struct {
     std::vector<std::vector<int>> vectors;  // Original vectors 
 } HostSet;
 
-// CUDA Set Data Structure (more efficient layout)
-typedef struct {
-    int8_t* data;         // Flattened array of all elements
-    int* offsets;      // Starting index for each vector/set
-    int* sizes;        // Size of each vector/set
-    int numItems;      // Number of vectors/sets
-    int totalElements; // Total number of elements
-    int8_t* deviceBuffer; // Reusable device buffer for operations
-    int bufferSize;    // Size of the device buffer
-} CudaSet;
+
 
 // Result buffer for parallel combination processing
 typedef struct {
@@ -260,7 +274,11 @@ typedef struct {
 struct ProcessResult {
     CudaSet set;
     std::string streamPath; // Path to file if results are streamed
+    int fromIdA = -1;
+    int fromIdB = -1;
+    size_t numResultItems = 0;
 };
+
 
 // Allocate memory for a CUDA set with additional buffer space
 CudaSet allocateCudaSet(int numItems, int totalElements, int bufferSize = 0) {
@@ -704,20 +722,21 @@ CudaSet extractSubset(const CudaSet& set, int startIndex, int count, bool verbos
 
 // Flushes a batch of results to disk to keep host RAM usage low, using Zstandard compression.
 // Each flush operation writes one or more compressed chunks to the file.
-void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results, 
+size_t flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results, 
                         const char* outputPath, bool& isFirstWrite, bool verbose) {
     if (results.empty()) {
-        return;
+        return 0;
     }
 
+    size_t itemsToFlush = results.size();
     if (verbose) {
-        printf("    Flushing %zu results to compressed binary file to free RAM...\n", results.size());
+        printf("    Flushing %zu items to %s (append: %s)\n", itemsToFlush, outputPath, isFirstWrite ? "false" : "true");
     }
 
     FILE* outFile = fopen(outputPath, isFirstWrite ? "wb" : "ab");
     if (!outFile) {
         fprintf(stderr, "Error: Could not open output file %s for appending\n", outputPath);
-        return;
+        return 0;
     }
 
     if (isFirstWrite) {
@@ -764,7 +783,7 @@ void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results,
         if (ZSTD_isError(cSize)) {
             fprintf(stderr, "ZSTD compression error: %s\n", ZSTD_getErrorName(cSize));
             fclose(outFile);
-            return;
+            return 0;
         }
 
         // Write the compressed chunk to disk: [size][data]
@@ -779,9 +798,17 @@ void flushResultsToDisk(std::unordered_map<size_t, std::vector<int>>& results,
 
     // CRITICAL: Clear the map to free host RAM
     results.clear();
+    
+    // Force the hash map to release its memory by swapping with an empty map
+    std::unordered_map<size_t, std::vector<int>>().swap(results);
+    
+    // Force allocator to return memory to OS
+    malloc_trim(0);
+    
     if (verbose) {
         printf("    Flush complete. RAM freed.\n");
     }
+    return itemsToFlush;
 }
 
 // Loads a compressed chunk of vectors from a binary file into a CudaSet
@@ -871,7 +898,182 @@ CudaSet loadCudaSetChunkFromBinary(const char* filePath, long long& fileOffset, 
 // Global counter for unique stream file names
 static int streamFileCounter = 0;
 
-ProcessResult processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, const char* streamFilePath, bool verbose) {
+// Helper function to get current memory usage
+size_t getCurrentMemoryUsage() {
+    std::ifstream status("/proc/self/status");
+    std::string line;
+    while (std::getline(status, line)) {
+        if (line.substr(0, 6) == "VmRSS:") {
+            std::istringstream iss(line);
+            std::string label, value, unit;
+            iss >> label >> value >> unit;
+            return std::stoull(value) * 1024; // Convert KB to bytes
+        }
+    }
+    return 0;
+}
+
+// An internal version of processPair that is guaranteed to run on the GPU without triggering another streaming operation.
+// It also contains the full deduplication logic.
+ProcessResult processPair_inMemory(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose) {
+    long long totalCombinations = (long long)setA.numItems * (long long)setB.numItems;
+    
+    // Calculate buffer size needed
+    int maxResultsPerThread = 4;
+    int threadsNeeded = (totalCombinations + maxResultsPerThread - 1) / maxResultsPerThread;
+    
+    // Determine thread block configuration
+    int threadsPerBlock = 256;
+    int blocksNeeded = (threadsNeeded + threadsPerBlock - 1) / threadsPerBlock;
+    
+    // Limit blocks to avoid excessive memory usage
+    const int MAX_BLOCKS = 16384;
+    if (blocksNeeded > MAX_BLOCKS) {
+        blocksNeeded = MAX_BLOCKS;
+        maxResultsPerThread = (totalCombinations + (blocksNeeded * threadsPerBlock) - 1) / (blocksNeeded * threadsPerBlock);
+    }
+    
+    // Allocate result buffer
+    CombinationResultBuffer resultBuffer = allocateCombinationResultBuffer(setA.numItems, setB.numItems, MAX_ELEMENTS_PER_VECTOR);
+    
+    // Launch kernel
+    processAllCombinationsKernel<<<blocksNeeded, threadsPerBlock>>>(
+        setA.data, setA.offsets, setA.sizes, setA.numItems,
+        setB.data, setB.offsets, setB.sizes, setB.numItems,
+        threshold, level,
+        resultBuffer.data, resultBuffer.sizes, resultBuffer.validFlags, resultBuffer.maxResultSize,
+        maxResultsPerThread
+    );
+    CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+    
+    // Count valid combinations
+    std::vector<int> hostValidFlags(resultBuffer.numCombinations);
+    CHECK_CUDA_ERROR(cudaMemcpy(hostValidFlags.data(), resultBuffer.validFlags, 
+                              resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
+    
+    int validCount = 0;
+    for (int i = 0; i < resultBuffer.numCombinations; i++) {
+        if (hostValidFlags[i]) validCount++;
+    }
+
+    if (verbose) {
+        printf("    Found %d valid combinations out of %lld total\n", validCount, totalCombinations);
+    }
+
+    std::vector<std::vector<int>> validCombinations;
+	if (validCount > 0) {
+        if (verbose) {
+		    printf("    Copying result data for %d valid combinations...\n", validCount);
+		}
+
+        std::vector<int> hostSizes(resultBuffer.numCombinations);
+        CHECK_CUDA_ERROR(cudaMemcpy(hostSizes.data(), resultBuffer.sizes, 
+                                  resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
+		
+		std::vector<int> hostResultData(resultBuffer.numCombinations * resultBuffer.maxResultSize);
+		CHECK_CUDA_ERROR(cudaMemcpy(hostResultData.data(), resultBuffer.data,
+		                          resultBuffer.numCombinations * resultBuffer.maxResultSize * sizeof(int),
+		                          cudaMemcpyDeviceToHost));
+		
+        // Progress reporting variables
+		int reportInterval = validCount > 1000 ? validCount / 10 : validCount;
+		int lastReportedCount = 0;
+		int collectedCount = 0;
+
+		for (int i = 0; i < resultBuffer.numCombinations; i++) {
+		    if (hostValidFlags[i]) {
+		        int size = hostSizes[i];
+		        std::vector<int> combination(size);
+		        int offset = i * resultBuffer.maxResultSize;
+		        for (int j = 0; j < size; j++) {
+		            combination[j] = hostResultData[offset + j];
+		        }
+		        validCombinations.push_back(combination);
+                collectedCount++;
+                
+                // Progress reporting for large result sets
+		        if (verbose && validCount > 1000 && collectedCount - lastReportedCount >= reportInterval) {
+		            printf("    Collected %d of %d valid combinations (%.1f%%)\n", 
+		                   collectedCount, validCount, 100.0 * collectedCount / validCount);
+		            lastReportedCount = collectedCount;
+		        }
+		    }
+		}
+
+        if (verbose && validCount > 1000) {
+		    printf("    Collection complete: %d combinations collected\n", collectedCount);
+		}
+	}
+
+	freeCombinationResultBuffer(&resultBuffer);
+
+    // Remove duplicates
+    if (validCombinations.size() > 1) {
+        if (verbose) {
+            printf("    Deduplicating %zu combinations...\n", validCombinations.size());
+        }
+        for (auto& combination : validCombinations) {
+            std::sort(combination.begin(), combination.end());
+        }
+        std::sort(std::execution::par, validCombinations.begin(), validCombinations.end());
+        validCombinations.erase(std::unique(validCombinations.begin(), validCombinations.end()), validCombinations.end());
+        if (verbose) {
+            printf("    Deduplication complete: %zu unique combinations.\n", validCombinations.size());
+        }
+    }
+
+    // Create result set
+    HostSet resultHostSet;
+    resultHostSet.vectors = validCombinations;
+    
+    CudaSet resultCudaSet;
+    copyHostToDevice(resultHostSet, &resultCudaSet);
+    
+    return {resultCudaSet, ""};
+}
+
+
+ProcessResult processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose, bool allowStreaming = true) {
+    int numItemsA = setA.numItems;
+    int numItemsB = setB.numItems;
+    
+    if (verbose) {
+        printf("  Processing pair at level %d: Set A (%d items) + Set B (%d items), threshold = %d\n", 
+               level, numItemsA, numItemsB, threshold);
+    }
+    
+    // Empty result for empty inputs
+    if (numItemsA == 0 || numItemsB == 0) {
+        CudaSet emptySet = {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
+        return {emptySet, ""};
+    }
+
+    // For extremely large combinations, use the memory-efficient approach (if allowed)
+    long long totalCombinations = (long long)numItemsA * (long long)numItemsB;
+    if (allowStreaming && totalCombinations > 3000000LL) { // 3 million threshold
+        char streamFilePath[256];
+        sprintf(streamFilePath, "zdd_stream_level%d_file%d.bin", level, streamFileCounter++);
+        
+        // This is now a two-step process: compute, then write.
+        std::unordered_map<size_t, std::vector<int>> results;
+        processLargePair(setA, setB, threshold, level, verbose, results);
+        bool isFirstWrite = true;
+        flushResultsToDisk(results, streamFilePath, isFirstWrite, verbose);
+        
+        return { {nullptr, nullptr, nullptr, 0, 0, nullptr, 0}, streamFilePath};
+    }
+    
+    // All other cases are processed in-memory.
+    if (verbose) {
+        printf("    Using in-memory GPU processing.\n");
+    }
+    return processPair_inMemory(setA, setB, threshold, level, verbose);
+}
+
+
+void processLargePair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose, 
+                     std::unordered_map<size_t, std::vector<int>>& uniqueResults,
+                     std::function<void()> flushCallback) {
     int numItemsA = setA.numItems;
     int numItemsB = setB.numItems;
     long long totalCombinations = (long long)numItemsA * (long long)numItemsB;
@@ -879,7 +1081,7 @@ ProcessResult processLargePair(const CudaSet& setA, const CudaSet& setB, int thr
     if (verbose) {
         printf("  Processing large pair with tiled approach: Set A (%d items) + Set B (%d items), threshold = %d\n", 
                numItemsA, numItemsB, threshold);
-        printf("  Total combinations: %lld - using tiled processing with disk streaming to %s\n", totalCombinations, streamFilePath);
+        printf("  Total combinations: %lld - using tiled processing\n", totalCombinations);
     }
     
     // Calculate number of tiles
@@ -891,13 +1093,6 @@ ProcessResult processLargePair(const CudaSet& setA, const CudaSet& setB, int thr
         printf("    Processing in %d x %d = %d tiles\n", numTilesA, numTilesB, totalTiles);
         printf("    Tile dimensions: %d x %d items\n", TILE_SIZE_A, TILE_SIZE_B);
     }
-    
-    // --- Streaming Logic ---
-    bool isFirstWrite = true;
-    const size_t RESULTS_FLUSH_THRESHOLD = 500000; // Flush after this many results in RAM
-    
-    // Maintain a set of unique results with fast lookup
-    std::unordered_map<size_t, std::vector<int>> uniqueResults;
     
     // Hash function for vectors
     auto hashVector = [](const std::vector<int>& vec) {
@@ -947,285 +1142,58 @@ ProcessResult processLargePair(const CudaSet& setA, const CudaSet& setB, int thr
                 continue;
             }
             
-            long long tileCombinations = (long long)numTileItemsA * (long long)numTileItemsB;
-            
-            // Allocate result buffer for this tile
-            CombinationResultBuffer resultBuffer = allocateCombinationResultBuffer(numTileItemsA, numTileItemsB, MAX_ELEMENTS_PER_VECTOR);
-            
-            // Configure kernel launch
-            int threadsPerBlock = 256;
-            int maxResultsPerThread = 4;
-            int threadsNeeded = (tileCombinations + maxResultsPerThread - 1) / maxResultsPerThread;
-            int blocksNeeded = (threadsNeeded + threadsPerBlock - 1) / threadsPerBlock;
-            
-            // Limit blocks to avoid excessive memory usage
-            const int MAX_BLOCKS = 16384;
-            if (blocksNeeded > MAX_BLOCKS) {
-                blocksNeeded = MAX_BLOCKS;
-                maxResultsPerThread = (tileCombinations + (blocksNeeded * threadsPerBlock) - 1) / (blocksNeeded * threadsPerBlock);
-            }
-            
-            // Launch kernel
-            processAllCombinationsKernel<<<blocksNeeded, threadsPerBlock>>>(
-                tileSetA.data, tileSetA.offsets, tileSetA.sizes, numTileItemsA,
-                tileSetB.data, tileSetB.offsets, tileSetB.sizes, numTileItemsB,
-                threshold, level,
-                resultBuffer.data, resultBuffer.sizes, resultBuffer.validFlags, resultBuffer.maxResultSize,
-                maxResultsPerThread
-            );
-            CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-            
-            // Count valid combinations
-            std::vector<int> hostValidFlags(resultBuffer.numCombinations);
-            CHECK_CUDA_ERROR(cudaMemcpy(hostValidFlags.data(), resultBuffer.validFlags, 
-                                      resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
-            
-            int validCount = 0;
-            for (int i = 0; i < resultBuffer.numCombinations; i++) {
-                if (hostValidFlags[i]) validCount++;
-            }
-            
-            // Process valid combinations
-            if (validCount > 0) {
-                std::vector<int> hostSizes(resultBuffer.numCombinations);
-                CHECK_CUDA_ERROR(cudaMemcpy(hostSizes.data(), resultBuffer.sizes, 
-                                          resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
-                
-                std::vector<int> hostResultData(resultBuffer.numCombinations * resultBuffer.maxResultSize);
-                CHECK_CUDA_ERROR(cudaMemcpy(hostResultData.data(), resultBuffer.data,
-                                          resultBuffer.numCombinations * resultBuffer.maxResultSize * sizeof(int),
-                                          cudaMemcpyDeviceToHost));
-                
-                for (int i = 0; i < resultBuffer.numCombinations; i++) {
-                    if (hostValidFlags[i]) {
-                        int size = hostSizes[i];
-                        std::vector<int> combination(size);
-                        int offset = i * resultBuffer.maxResultSize;
-                        
-                        for (int j = 0; j < size; j++) {
-                            combination[j] = hostResultData[offset + j];
-                        }
-                        
-                        // Sort the combination for canonicalization before hashing
-                        std::sort(combination.begin(), combination.end());
-                        size_t hash = hashVector(combination);
-                        
-                        // Add to unique results if not present
-                        if (uniqueResults.find(hash) == uniqueResults.end()) {
-                             uniqueResults[hash] = std::move(combination);
-                        }
+            ProcessResult chunkResult = processPair_inMemory(tileSetA, tileSetB, threshold, level, false);
+
+            if (chunkResult.set.numItems > 0) {
+                HostSet hostResult = copyDeviceToHost(chunkResult.set);
+                for (auto& vec : hostResult.vectors) {
+                    std::sort(vec.begin(), vec.end());
+                    size_t hash = hashVector(vec);
+                    if (uniqueResults.find(hash) == uniqueResults.end()) {
+                        uniqueResults[hash] = std::move(vec);
                     }
                 }
+                freeCudaSet(&chunkResult.set);
             }
-            
-            // Flush to disk if memory threshold is reached
-            if (uniqueResults.size() >= RESULTS_FLUSH_THRESHOLD) {
-                flushResultsToDisk(uniqueResults, streamFilePath, isFirstWrite, verbose);
-            }
-            
-            // Free result buffer
-            freeCombinationResultBuffer(&resultBuffer);
             
             // Free tile resources
             freeCudaSet(&tileSetB);
+            
+            // Check if we need to flush results periodically during tiled processing
+            if (flushCallback && uniqueResults.size() > RESULTS_FLUSH_THRESHOLD) {
+                if (verbose) {
+                    printf("      Flushing results during tiled processing (%zu items)...\n", uniqueResults.size());
+                }
+                flushCallback();
+                
+                // Force GPU memory cleanup after flush
+                CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+                CHECK_CUDA_ERROR(cudaMemGetInfo(nullptr, nullptr)); // Force memory manager update
+                
+                // Additional aggressive cleanup
+                if (verbose) {
+                    printf("      Post-flush cleanup: uniqueResults size = %zu\n", uniqueResults.size());
+                }
+            }
+            
+            // More frequent flushing for very large tile results
+            if (flushCallback && uniqueResults.size() > RESULTS_FLUSH_THRESHOLD / 4) {
+                if (verbose) {
+                    printf("      Early flush triggered at %zu items\n", uniqueResults.size());
+                }
+                flushCallback();
+                CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+            }
         }
         
         // Free tile resources
         freeCudaSet(&tileSetA);
     }
     
-    // Final flush for any remaining results
-    flushResultsToDisk(uniqueResults, streamFilePath, isFirstWrite, verbose);
-
     if (verbose) {
-        printf("  Tiled processing complete. All results streamed to %s\n", streamFilePath);
+        printf("  Tiled processing complete. Results added to shared collection.\n");
     }
-    
-    // Return an empty CudaSet but include the path to the streamed results
-    return { {nullptr, nullptr, nullptr, 0, 0, nullptr, 0}, streamFilePath};
 }
-
-ProcessResult processPair(const CudaSet& setA, const CudaSet& setB, int threshold, int level, bool verbose) {
-    int numItemsA = setA.numItems;
-    int numItemsB = setB.numItems;
-    
-    if (verbose) {
-        printf("  Processing pair at level %d: Set A (%d items) + Set B (%d items), threshold = %d\n", 
-               level, numItemsA, numItemsB, threshold);
-    }
-    
-    // Empty result for empty inputs
-    if (numItemsA == 0 || numItemsB == 0) {
-        CudaSet emptySet = {nullptr, nullptr, nullptr, 0, 0, nullptr, 0};
-        return {emptySet, ""};
-    }
-
-    // For extremely large combinations, use the memory-efficient approach
-    long long totalCombinations = (long long)numItemsA * (long long)numItemsB;
-    if (totalCombinations > 3000000LL) { // 3 million threshold
-        char streamFilePath[256];
-        sprintf(streamFilePath, "zdd_stream_level%d_file%d.bin", level, streamFileCounter++);
-        return processLargePair(setA, setB, threshold, level, streamFilePath, verbose);
-    }
-    
-    // Calculate buffer size needed
-    int maxResultsPerThread = 4; // Each thread will process up to 4 combinations
-    int threadsNeeded = (totalCombinations + maxResultsPerThread - 1) / maxResultsPerThread;
-    
-    // Determine thread block configuration
-    int threadsPerBlock = 256;
-    int blocksNeeded = (threadsNeeded + threadsPerBlock - 1) / threadsPerBlock;
-    
-    // Limit blocks to avoid excessive memory usage
-    const int MAX_BLOCKS = 16384; // Adjust based on GPU capability
-    if (blocksNeeded > MAX_BLOCKS) {
-        blocksNeeded = MAX_BLOCKS;
-        maxResultsPerThread = (totalCombinations + (blocksNeeded * threadsPerBlock) - 1) / (blocksNeeded * threadsPerBlock);
-        if (verbose) {
-            printf("    Adjusting to %d blocks with %d results per thread\n", blocksNeeded, maxResultsPerThread);
-        }
-    }
-    
-    // Allocate result buffer
-    CombinationResultBuffer resultBuffer = allocateCombinationResultBuffer(numItemsA, numItemsB, MAX_ELEMENTS_PER_VECTOR);
-    
-    // Launch kernel with grid-stride batching
-    if (verbose) {
-        printf("    Using GPU batching with %d blocks, %d threads per block, %d combinations per thread\n", 
-               blocksNeeded, threadsPerBlock, maxResultsPerThread);
-    }
-    
-    processAllCombinationsKernel<<<blocksNeeded, threadsPerBlock>>>(
-        setA.data, setA.offsets, setA.sizes, numItemsA,
-        setB.data, setB.offsets, setB.sizes, numItemsB,
-        threshold, level,
-        resultBuffer.data, resultBuffer.sizes, resultBuffer.validFlags, resultBuffer.maxResultSize,
-        maxResultsPerThread
-    );
-    CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-    
-    // Count valid combinations
-    std::vector<int> hostValidFlags(resultBuffer.numCombinations);
-    CHECK_CUDA_ERROR(cudaMemcpy(hostValidFlags.data(), resultBuffer.validFlags, 
-                              resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
-    
-    std::vector<int> hostSizes(resultBuffer.numCombinations);
-    CHECK_CUDA_ERROR(cudaMemcpy(hostSizes.data(), resultBuffer.sizes, 
-                              resultBuffer.numCombinations * sizeof(int), cudaMemcpyDeviceToHost));
-    
-    int validCount = 0;
-    for (int i = 0; i < resultBuffer.numCombinations; i++) {
-        if (hostValidFlags[i]) validCount++;
-    }
-    
-    if (verbose) {
-        printf("    Found %d valid combinations out of %d total\n", validCount, (int)totalCombinations);
-    }
-		
-	// Gather valid combinations
-	std::vector<std::vector<int>> validCombinations;
-
-	// Only copy data if we have valid combinations
-	if (validCount > 0) {
-		if (verbose) {
-		    printf("    Copying result data for %d valid combinations...\n", validCount);
-		}
-		
-		std::vector<int> hostResultData(resultBuffer.numCombinations * resultBuffer.maxResultSize);
-		CHECK_CUDA_ERROR(cudaMemcpy(hostResultData.data(), resultBuffer.data,
-		                          resultBuffer.numCombinations * resultBuffer.maxResultSize * sizeof(int),
-		                          cudaMemcpyDeviceToHost));
-		
-		// Progress reporting variables
-		int reportInterval = validCount > 1000 ? validCount / 10 : validCount;
-		int lastReportedCount = 0;
-		int collectedCount = 0;
-		
-		// Collect valid combinations
-		for (int i = 0; i < resultBuffer.numCombinations; i++) {
-		    if (hostValidFlags[i]) {
-		        int size = hostSizes[i];
-		        std::vector<int> combination(size);
-		        int offset = i * resultBuffer.maxResultSize;
-		        
-		        for (int j = 0; j < size; j++) {
-		            combination[j] = hostResultData[offset + j];
-		        }
-		        validCombinations.push_back(combination);
-		        collectedCount++;
-		        
-		        // Progress reporting for large result sets
-		        if (verbose && validCount > 1000 && collectedCount - lastReportedCount >= reportInterval) {
-		            printf("    Collected %d of %d valid combinations (%.1f%%)\n", 
-		                   collectedCount, validCount, 100.0 * collectedCount / validCount);
-		            lastReportedCount = collectedCount;
-		        }
-		    }
-		}
-		
-		if (verbose && validCount > 1000) {
-		    printf("    Collection complete: %d combinations collected\n", collectedCount);
-		}
-	}
-
-	// Free result buffer
-	freeCombinationResultBuffer(&resultBuffer);
-
-	// Remove duplicates
-	// Alternative approach: sort-based deduplication - even faster, but requires more initial sorting
-	if (verbose) {
-		printf("    Removing duplicates from %zu combinations using sort-based approach...\n", validCombinations.size());
-	}
-
-	// First, canonicalize each vector by sorting it
-	for (auto& combination : validCombinations) {
-		std::sort(combination.begin(), combination.end());
-	}
-
-	// Then sort all vectors lexicographically
-	if (verbose && validCombinations.size() > 10000) {
-		printf("    Sorting %zu combinations...\n", validCombinations.size());
-	}
-	std::sort(validCombinations.begin(), validCombinations.end());
-
-	// Remove duplicates with a linear scan
-	if (verbose && validCombinations.size() > 10000) {
-		printf("    Performing linear scan to remove duplicates...\n");
-	}
-	std::vector<std::vector<int>> uniqueValidCombinations;
-	uniqueValidCombinations.reserve(validCombinations.size());
-
-	for (size_t i = 0; i < validCombinations.size(); i++) {
-		// Skip if same as previous element (duplicates are adjacent after sorting)
-		if (i > 0 && validCombinations[i] == validCombinations[i-1]) {
-		    continue;
-		}
-		uniqueValidCombinations.push_back(validCombinations[i]);
-		
-		// Progress reporting
-		if (verbose && validCombinations.size() > 10000 && i % 10000 == 0) {
-		    printf("    Deduplication scan: processed %zu of %zu combinations (%.1f%%), found %zu unique\n", 
-		           i, validCombinations.size(), 
-		           100.0 * i / validCombinations.size(),
-		           uniqueValidCombinations.size());
-		}
-	}
-
-	if (verbose) {
-		printf("  Deduplication complete: %zu items, %zu unique (%.1f%% unique)\n", 
-		       validCombinations.size(), uniqueValidCombinations.size(), 
-		       validCombinations.size() > 0 ? 100.0 * uniqueValidCombinations.size() / validCombinations.size() : 0);
-	}
-    // Create result set
-    HostSet resultHostSet;
-    resultHostSet.vectors = uniqueValidCombinations;
-    
-    CudaSet resultCudaSet;
-    copyHostToDevice(resultHostSet, &resultCudaSet);
-    
-    return {resultCudaSet, ""};
-}
-
 // Special handling for converting a set to unique elements (for level 1 carry-over)
 CudaSet convertSetToUnique(const CudaSet& set, bool verbose) {
     int numItems = set.numItems;
@@ -1293,11 +1261,9 @@ LevelItem processStreamedPair(LevelItem& itemA, LevelItem& itemB, int threshold,
         printf("    Item B (ID %d): %s (%d items)\n", itemB.id, itemB.isStreamed() ? itemB.streamPath.c_str() : "in-memory", itemB.numItems);
     }
 
-    const int CHUNK_SIZE = 5000; // Number of vectors to load from disk at a time
-    long long offsetA = 0;
-    
     std::unordered_map<size_t, std::vector<int>> uniqueResults;
     bool isFirstWrite = true;
+    size_t totalItemsWritten = 0;
     
     auto hashVector = [](const std::vector<int>& vec) {
         size_t hash = vec.size();
@@ -1305,98 +1271,87 @@ LevelItem processStreamedPair(LevelItem& itemA, LevelItem& itemB, int threshold,
         return hash;
     };
 
-    // Loop through item A in chunks
-    while (true) {
+    long long offsetA = 0;
+    while(offsetA < itemA.numItems) {
         CudaSet chunkA;
+        long long currentChunkSizeA = std::min((long long)CHUNK_SIZE, (long long)itemA.numItems - offsetA);
+
         if (itemA.isStreamed()) {
-            chunkA = loadCudaSetChunkFromBinary(itemA.streamPath.c_str(), offsetA, CHUNK_SIZE, false);
+            chunkA = loadCudaSetChunkFromBinary(itemA.streamPath.c_str(), offsetA, currentChunkSizeA, false);
         } else {
-            chunkA = itemA.set;
+            chunkA = extractSubset(itemA.set, offsetA, currentChunkSizeA, false);
         }
 
-        if (chunkA.numItems == 0) break;
+        if(verbose) printf("    Loaded chunk A (items %lld-%lld) with %d items.\n", offsetA, offsetA + chunkA.numItems -1, chunkA.numItems);
+        if (chunkA.numItems == 0) {
+            offsetA += currentChunkSizeA;
+            continue;
+        }
 
         long long offsetB = 0;
-        // Loop through item B in chunks
-        while (true) {
+        while(offsetB < itemB.numItems) {
             CudaSet chunkB;
+            long long currentChunkSizeB = std::min((long long)CHUNK_SIZE, (long long)itemB.numItems - offsetB);
+            
             if (itemB.isStreamed()) {
-                chunkB = loadCudaSetChunkFromBinary(itemB.streamPath.c_str(), offsetB, CHUNK_SIZE, false);
+                chunkB = loadCudaSetChunkFromBinary(itemB.streamPath.c_str(), offsetB, currentChunkSizeB, false);
             } else {
-                chunkB = itemB.set;
+                chunkB = extractSubset(itemB.set, offsetB, currentChunkSizeB, false);
             }
+            
+            if(verbose) printf("      Loaded chunk B (items %lld-%lld) with %d items.\n", offsetB, offsetB + chunkB.numItems - 1, chunkB.numItems);
+            if (chunkB.numItems == 0) {
+                offsetB += currentChunkSizeB;
+                continue;
+            }
+            
+            if(verbose) printf("      Processing chunk pair with tiled approach.\n");
+            
+            // Create a flush callback that will be called during tiled processing
+            auto flushCallback = [&]() {
+                size_t memBefore = getCurrentMemoryUsage();
+                if(verbose) printf("    Flushing intermediate results to disk (%zu items, RAM: %.1f MB)...\n", 
+                                 uniqueResults.size(), memBefore / 1024.0 / 1024.0);
+                totalItemsWritten += flushResultsToDisk(uniqueResults, outStreamPath, isFirstWrite, verbose);
+                
+                std::unordered_map<size_t, std::vector<int>>().swap(uniqueResults);
+                malloc_trim(0);
+                
+                size_t memAfter = getCurrentMemoryUsage();
+                long long memDiff = (long long)memBefore - (long long)memAfter;
+                if(verbose) printf("    Post-flush RAM: %.1f MB (change: %+.1f MB)\n", 
+                                 memAfter / 1024.0 / 1024.0, memDiff / 1024.0 / 1024.0);
+            };
+            
+            processLargePair(chunkA, chunkB, threshold, level, false, uniqueResults, flushCallback);
 
-            if (chunkB.numItems == 0) break;
-            
-            // Process the pair of chunks
-            ProcessResult chunkResult = processPair(chunkA, chunkB, threshold, level, false);
-            
-            if (chunkResult.set.numItems > 0) {
-                 HostSet hostResult = copyDeviceToHost(chunkResult.set);
-                 for (auto& vec : hostResult.vectors) {
-                    std::sort(vec.begin(), vec.end());
-                    size_t hash = hashVector(vec);
-                    if (uniqueResults.find(hash) == uniqueResults.end()) {
-                        uniqueResults[hash] = std::move(vec);
-                    }
-                 }
-                 freeCudaSet(&chunkResult.set);
+            if (uniqueResults.size() > RESULTS_FLUSH_THRESHOLD) {
+                if(verbose) printf("    Flushing intermediate results to disk (%zu items)...\n", uniqueResults.size());
+                totalItemsWritten += flushResultsToDisk(uniqueResults, outStreamPath, isFirstWrite, verbose);
+                
+                // Force memory cleanup after flush
+                CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+                CHECK_CUDA_ERROR(cudaMemGetInfo(nullptr, nullptr)); // Force memory manager update
+                malloc_trim(0);
             }
             
-            // Flush to disk if needed
-            if (uniqueResults.size() > 500000) {
-                flushResultsToDisk(uniqueResults, outStreamPath, isFirstWrite, verbose);
-            }
-
-            if (!itemB.isStreamed()) break; // Only loop once if B is in memory
             freeCudaSet(&chunkB);
+            offsetB += currentChunkSizeB;
         }
-
-        if (!itemA.isStreamed()) break; // Only loop once if A is in memory
+        
         freeCudaSet(&chunkA);
+        offsetA += currentChunkSizeA;
     }
     
-    // Final flush
-    flushResultsToDisk(uniqueResults, outStreamPath, isFirstWrite, verbose);
-
-    // Get total items in the new stream by reading the compressed file correctly
-    FILE* f = fopen(outStreamPath, "rb");
-    size_t totalItems = 0;
-    if (f) {
-        fseek(f, 0, SEEK_END);
-        long long fileSize = ftell(f);
-        fseek(f, 0, SEEK_SET);
-
-        while (ftell(f) < fileSize) {
-            uint64_t compressedSize = 0;
-            size_t elementsRead = fread(&compressedSize, sizeof(uint64_t), 1, f);
-            if (elementsRead == 0 || compressedSize == 0) break;
-
-            // Read the compressed chunk
-            std::vector<char> compressedChunk(compressedSize);
-            size_t dataRead = fread(compressedChunk.data(), 1, compressedSize, f);
-            if(dataRead != compressedSize) break; // Error reading chunk
-
-            // Decompress just the header to find out how many vectors are in the chunk
-            size_t const dBuffSize = sizeof(size_t);
-            char decompressedHeader[dBuffSize];
-            size_t const dSize = ZSTD_decompress(decompressedHeader, dBuffSize, compressedChunk.data(), compressedSize);
-
-            if (!ZSTD_isError(dSize)) {
-                size_t numVectorsInChunk = 0;
-                memcpy(&numVectorsInChunk, decompressedHeader, sizeof(size_t));
-                totalItems += numVectorsInChunk;
-            }
-        }
-        fclose(f);
-    } else {
-        // If the file doesn't exist, it means flush never wrote anything, so 0 items.
-        totalItems = 0;
+    // Final flush for any remaining results
+    if (!uniqueResults.empty()) {
+        if (verbose) printf("    Flushing final results to disk (%zu items)...\n", uniqueResults.size());
+        totalItemsWritten += flushResultsToDisk(uniqueResults, outStreamPath, isFirstWrite, verbose);
     }
     
-    if (verbose) printf("  --> Streamed pair processing complete. Result: %zu items in %s\n", totalItems, outStreamPath);
+    if (verbose) printf("  --> Streamed pair processing complete. Result: %zu items in %s\n", totalItemsWritten, outStreamPath);
 
-    return { {}, outStreamPath, (int)totalItems, levelItemCounter++, true };
+    return { {}, outStreamPath, (int)totalItemsWritten, levelItemCounter++, true };
 }
 
 // Tree fold operations (maintains sequential dependencies but optimizes within each step)
@@ -1475,7 +1430,7 @@ LevelItem treeFoldOperations(const std::vector<CudaSet>& sets, bool verbose) {
                     printf("      Processing pair in-memory (GPU).\n");
                 }
 
-                ProcessResult res = processPair(itemA.set, itemB.set, lowestThreshold, level, verbose);
+                ProcessResult res = processPair(itemA.set, itemB.set, lowestThreshold, level, verbose, true);
                 LevelItem resultItem = { res.set, res.streamPath, res.set.numItems, levelItemCounter++, true };
                 if (!res.streamPath.empty()) {
                    tempFiles.push_back(res.streamPath);
